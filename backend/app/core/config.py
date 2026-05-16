@@ -3,7 +3,10 @@ from pydantic_settings import BaseSettings
 
 class Settings(BaseSettings):
     app_name: str = "Smart AI Business Assistant"
-    database_url: str = "postgresql+asyncpg://postgres:postgres@db:5432/smart_assistant"
+    # No default — must be provided via DATABASE_URL environment variable on Render.
+    # A missing value will raise a clear ValidationError at startup instead of
+    # silently attempting to connect to an unreachable Docker Compose hostname.
+    database_url: str
     jwt_secret: str = "change-me"
     jwt_algorithm: str = "HS256"
     access_token_expire_minutes: int = 60
@@ -20,13 +23,11 @@ class Settings(BaseSettings):
 
 settings = Settings()
 
-# If a deploy platform (Render, Supabase) provides a DATABASE_URL like
-# 'postgresql://user:pass@host:port/db', SQLAlchemy async engine will try to
-# import a sync DBAPI (psycopg2). Ensure the async driver is used by
-# normalizing the scheme to 'postgresql+asyncpg://' when '+asyncpg' is missing.
-if settings.database_url.startswith("postgresql://") and "+asyncpg" not in settings.database_url:
+# Normalize scheme: Render / Supabase supply 'postgresql://' but asyncpg needs
+# 'postgresql+asyncpg://'.
+if "+asyncpg" not in settings.database_url and settings.database_url.startswith("postgresql://"):
     settings.database_url = settings.database_url.replace("postgresql://", "postgresql+asyncpg://", 1)
 
-# Ensure asyncpg receives a valid ssl keyword argument instead of sslmode
+# asyncpg does not accept 'sslmode' — replace with 'ssl' so the driver honours it.
 if "sslmode=" in settings.database_url:
     settings.database_url = settings.database_url.replace("sslmode=", "ssl=")
