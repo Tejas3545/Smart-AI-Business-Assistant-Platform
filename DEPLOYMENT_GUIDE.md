@@ -1,51 +1,245 @@
 # Deployment Guide
 
-This project is easiest to host as two parts:
+## Overview
 
-- Frontend: Vercel
-- Backend: Render Web Service
-- Database: Hosted PostgreSQL such as Neon, Supabase, or Render PostgreSQL
+Your Smart AI Business Assistant Platform is ready to deploy with:
 
-The frontend is static HTML/CSS/JS, so Vercel is a correct choice. The backend is a FastAPI service, so it must run on a server platform such as Render.
+- **Frontend**: Vercel (static HTML/JS)
+- **Backend**: Render Web Service (FastAPI + Docker)
+- **Database**: Supabase PostgreSQL (or any hosted PostgreSQL)
 
-## 1. What goes where
+## Backend Deployment (Render)
 
-### Frontend on Vercel
+### Prerequisites
+- Render account (https://render.com)
+- Supabase account (https://supabase.com)
+- GitHub repository with latest code pushed
 
-Deploy the `frontend/` folder as a static site.
+### Step 1: Create Supabase Database
 
-You do not need frontend environment variables for this app.
+1. Go to https://supabase.com and create a new project
+2. Wait for project to be ready (~5 minutes)
+3. Go to **Settings → Database**
+4. Copy the connection string:
+   - Look for "Connection string" or "URI"
+   - Should look like: `postgresql://postgres:password@host:5432/postgres`
+   - **Important**: Change `postgresql://` to `postgresql+asyncpg://` at the start
+   - Final URL should look like: `postgresql+asyncpg://postgres:password@host:5432/postgres?sslmode=require`
 
-After deployment, open the app and use the built-in `API Settings` panel to point the frontend at your backend URL.
+### Step 2: Deploy on Render
 
-### Backend on Render
+1. Go to https://dashboard.render.com
+2. Click **"New +"** → **"Web Service"**
+3. Connect your GitHub repository
 
-Deploy the FastAPI backend using the Dockerfile in `backend/Dockerfile`.
+4. Configure the web service:
+   - **Name**: `smart-ai-backend`
+   - **Region**: Choose closest to your users
+   - **Branch**: `main` (or your deploy branch)
+   - **Build Command**: (leave empty - Render auto-detects)
+   - **Start Command**: (leave empty - Dockerfile CMD is used)
+   - **Instance Type**: Standard or higher
+   - **Plan**: Starter ($7/month) or Pro ($12/month)
 
-Important: the Docker build context must be the repository root, because the Dockerfile copies files from `backend/`.
+5. **Environment Variables** tab, add:
+   ```
+   DATABASE_URL=postgresql+asyncpg://postgres:password@host:5432/postgres?sslmode=require
+   SECRET_KEY=<generate-random-32-char-string>
+   ALGORITHM=HS256
+   ACCESS_TOKEN_EXPIRE_MINUTES=30
+   ```
 
-### Database
+   To generate SECRET_KEY:
+   ```bash
+   python -c "import secrets; print(secrets.token_urlsafe(32))"
+   ```
 
-Use a hosted PostgreSQL database.
+6. Click **"Deploy"**
+7. Wait 3-5 minutes for build to complete
+8. Check logs for any errors
 
-Do not rely on the free container filesystem for your main data if you want it to persist across restarts.
+### Step 3: Verify Backend
 
-## 2. Backend environment variables
+Once deployed, test the health endpoint:
+```bash
+curl https://your-service-name.onrender.com/api/health
+```
 
-Create a `.env` file for the backend service with these values.
+Expected response: `{"status": "healthy"}`
 
-### Minimal production `.env`
+### Important Notes on Dependencies
 
-```env
-DATABASE_URL=postgresql+asyncpg://YOUR_DB_USER:YOUR_DB_PASSWORD@YOUR_DB_HOST:5432/YOUR_DB_NAME?sslmode=require
-JWT_SECRET=replace-this-with-a-long-random-secret
-ACCESS_TOKEN_EXPIRE_MINUTES=60
-CHROMA_PATH=./chroma_store_v1
-FRONTEND_DIR=../frontend
-ALLOW_ORIGINS=https://YOUR_FRONTEND_DOMAIN,http://localhost:8080,http://localhost:5173
-OLLAMA_URL=http://localhost:11434
-OLLAMA_MODEL=llama3.1:8b
-OLLAMA_TIMEOUT_SECONDS=30
+**dependencies.txt contains ONLY essential packages:**
+- fastapi, uvicorn, SQLAlchemy, asyncpg, pydantic, etc.
+
+**Lazy-loaded packages** (to save memory):
+- `chromadb` (vector database for RAG)
+- `sentence-transformers` (ML embeddings)
+
+**What this means:**
+- ✅ Backend starts quickly (< 1GB RAM)
+- ✅ PDF documents can be uploaded
+- ⏳ RAG features (semantic search) load on first use (~5-10 seconds)
+- ⚠️ If you need RAG immediately, install extra packages locally then push
+
+**To enable RAG locally:**
+```bash
+pip install chromadb sentence-transformers numpy
+```
+
+## Frontend Deployment (Vercel)
+
+### Step 1: Prepare Frontend
+
+Update [frontend/app.js](frontend/app.js) with your backend URL:
+```javascript
+// At the top of the file, find:
+const API_BASE = 'https://your-service-name.onrender.com';
+// or use localStorage for user configuration
+```
+
+### Step 2: Deploy to Vercel
+
+1. Go to https://vercel.com
+2. Click **"Add New..."** → **"Project"**
+3. Import your GitHub repository
+4. Configure:
+   - **Framework Preset**: Other (static site)
+   - **Root Directory**: `frontend`
+   - **Build Command**: (leave empty)
+   - **Output Directory**: (leave empty)
+5. Click **"Deploy"**
+
+### Step 3: Test Frontend
+
+After deployment:
+1. Open your Vercel frontend URL
+2. Try to login (create account or use test credentials)
+3. Test chat, document upload, leads, etc.
+4. Check browser console (F12) for any errors
+
+## Local Development
+
+### Setup
+
+1. **Create virtual environment:**
+   ```bash
+   python -m venv venv
+   source venv/Scripts/activate  # Windows: venv\Scripts\activate
+   ```
+
+2. **Install dependencies:**
+   ```bash
+   pip install -r backend/requirements-web.txt
+   ```
+
+3. **Create `.env` file** in repo root:
+   ```env
+   DATABASE_URL=postgresql+asyncpg://postgres:password@localhost:5432/smart_ai
+   SECRET_KEY=dev-secret-key-change-in-production
+   ALGORITHM=HS256
+   ACCESS_TOKEN_EXPIRE_MINUTES=30
+   ```
+
+4. **Start backend:**
+   ```bash
+   python run_backend.py
+   ```
+   Backend runs on http://localhost:8000
+
+5. **Start frontend** (new terminal):
+   ```bash
+   cd frontend
+   python -m http.server 8080
+   ```
+   Frontend runs on http://localhost:8080
+
+6. **Test the API:**
+   ```bash
+   curl http://localhost:8000/api/health
+   ```
+
+### Enable RAG Locally (Optional)
+
+If you want to test document upload and semantic search:
+```bash
+pip install chromadb sentence-transformers numpy
+```
+
+Then restart the backend.
+
+## Troubleshooting
+
+### Backend won't start
+- **psycopg2 import error**: DATABASE_URL must start with `postgresql+asyncpg://` (not `postgresql://`)
+- **Connection refused**: Verify DATABASE_URL is correct in Render environment
+- **Check Render logs**: dashboard.render.com → your service → "Logs" tab
+
+### Frontend can't reach backend
+- Check browser console (F12) for CORS errors
+- Verify API_BASE in [frontend/app.js](frontend/app.js) is correct
+- Ensure backend is fully deployed and healthy
+
+### Out of memory on Render
+- Current setup minimizes memory with lazy-loading
+- If you need RAG features: upgrade to Standard or Pro instance
+- Or disable RAG by not installing chromadb
+
+### Database connection timeout
+- Check Supabase connection string is correct
+- Verify you copied `postgresql+asyncpg://` format
+- Test locally: `psql "postgresql+asyncpg://user:pass@host/db"`
+
+## Important: The DATABASE_URL Format
+
+**❌ Wrong:**
+```
+postgresql://user:password@host:5432/database
+```
+
+**✅ Correct:**
+```
+postgresql+asyncpg://user:password@host:5432/database?sslmode=require
+```
+
+The `asyncpg` driver is required because FastAPI uses async database operations.
+
+## Production Checklist
+
+- [ ] Supabase database created and verified
+- [ ] Backend deployed to Render with all env vars set
+- [ ] `curl /api/health` returns 200 status
+- [ ] Frontend deployed to Vercel
+- [ ] Frontend API_BASE points to Render backend URL
+- [ ] Can login and create account
+- [ ] Can create chat conversation
+- [ ] Can upload documents
+- [ ] Render logs show no startup errors
+- [ ] Database is accessible from backend
+
+## File Reference
+
+```
+backend/
+├── Dockerfile              ← Used by Render for Docker build
+├── requirements.txt        ← Production dependencies (PINNED VERSIONS)
+├── requirements-web.txt    ← Local development dependencies
+├── app/main.py             ← FastAPI app entry point
+├── core/config.py          ← Environment config (auto-normalizes DATABASE_URL)
+├── db/session.py           ← Database connection pool
+├── models/                 ← SQLAlchemy ORM models
+├── schemas/                ← Pydantic validation schemas
+├── services/rag.py         ← Lazy-loaded ChromaDB RAG
+└── api/routes/             ← API endpoints
+
+frontend/
+├── app.js                  ← Main app (update API_BASE here)
+├── index.html              ← Entry page
+├── styles.css              ← Styling
+└── assets/                 ← Images, etc.
+
+run_backend.py             ← Local startup script (uses correct Python path)
+DEPLOYMENT_GUIDE.md        ← This file
 ```
 
 ### What each variable means

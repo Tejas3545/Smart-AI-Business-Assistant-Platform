@@ -2,7 +2,6 @@ import io
 
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
 from sqlalchemy import select
-from pypdf import PdfReader
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_user, get_db
@@ -16,6 +15,13 @@ router = APIRouter()
 
 def extract_text(file: UploadFile, data: bytes) -> str:
     if file.content_type == "application/pdf":
+        try:
+            from pypdf import PdfReader
+        except ImportError as exc:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="PDF support is not installed.",
+            ) from exc
         reader = PdfReader(io.BytesIO(data))
         return "\n".join(page.extract_text() or "" for page in reader.pages)
     if file.content_type and file.content_type.startswith("text/"):
