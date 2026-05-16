@@ -1,101 +1,67 @@
 # Smart AI Business Assistant Platform
 
-Production-oriented MVP for the Imperion Data Systems assessment. This system combines an AI assistant, RAG document retrieval, lead capture, workflow automation, and an admin dashboard.
+Smart AI Business Assistant Platform is a compact AI operations dashboard built for the Imperion Data Systems assessment. It combines grounded chat, document intelligence, lead capture, workflow automation, and analytics in one practical system that can run locally or be hosted with a simple production setup.
 
-## Architecture Overview
-- **Frontend**: Static dashboard (HTML/CSS/JS) served by Nginx or FastAPI.
-- **Backend**: FastAPI with async SQLAlchemy + PostgreSQL.
-- **RAG**: ChromaDB + Sentence Transformers embeddings (local, no external LLM).
-- **Agents**: Planner, Executor, Validator pipeline (deterministic orchestration).
-- **Auth**: JWT-based login/signup.
+## Overview
+The application is designed to demonstrate a realistic business assistant workflow rather than a toy chatbot. Users can log in, upload documents, ask grounded questions, capture leads, trigger automations, and monitor activity through a unified dashboard.
 
-## Key Features
-- Contextual assistant with multi-turn chat and grounded responses.
-- Document upload with semantic chunking + vector retrieval.
-- Short-term conversation memory stored in DB.
-- Long-term user memory stored for personalization.
-- Lead capture with hot/warm/cold scoring.
-- Follow-up message generation for leads.
-- Workflow automations: email summary, CRM sync, calendar booking.
-- Admin dashboard for analytics and logs.
-- Dockerized deployment with environment configuration.
+## Core Capabilities
+- Grounded AI chat with document-aware responses.
+- Document upload, chunking, embedding, and retrieval through ChromaDB.
+- Lead capture with basic scoring and follow-up generation.
+- Workflow execution for email summaries, CRM sync, and calendar booking.
+- Dashboard analytics with conversations, messages, documents, workflows, and audit logs.
+- JWT-based authentication with user sessions stored in PostgreSQL.
 
-## Setup (Docker)
+## Architecture
+- Frontend: static HTML, CSS, and JavaScript.
+- Backend: FastAPI with async SQLAlchemy.
+- Database: PostgreSQL for users, leads, conversations, workflows, and audit history.
+- Vector store: ChromaDB with Sentence Transformers embeddings.
+- Deployment model: static frontend + API backend + persistent database.
+
+## Local Setup
 ```bash
 cp .env.example .env
-
 docker-compose up --build
 ```
 
+Then open:
+- UI: http://localhost:8080
 - API: http://localhost:8000
-- Dashboard (Nginx): http://localhost:8080
-- Dashboard (FastAPI static): http://localhost:8000
-
-## Hosting / Deployment
-The simplest reliable deployment is a single Linux VPS or cloud VM running Docker Compose.
-
-Recommended approach:
-1. Provision an Ubuntu VM with Docker and Docker Compose installed.
-2. Copy this repository to the server and create a production `.env` file.
-3. Set `ALLOW_ORIGINS` to your deployed frontend domain and API domain.
-4. Run `docker-compose up -d --build`.
-5. Put Nginx or a cloud load balancer in front of the `ui` and `api` services if you want HTTPS.
-
-Minimum environment variables for deployment:
-- `DATABASE_URL`
-- `JWT_SECRET`
-- `CHROMA_PATH`
-- `ALLOW_ORIGINS`
-- `OLLAMA_URL` and `OLLAMA_MODEL` if you want local LLM support
-
-If you use a managed hosting platform, keep the PostgreSQL volume and Chroma storage persistent, or the chat/doc memory will reset on restart.
-
-## Architecture / Workflow
-1. A user logs in or signs up with JWT auth.
-2. Chat requests are routed through intent planning, grounded retrieval, and response validation.
-3. Uploaded documents are parsed, chunked, embedded, and stored in ChromaDB.
-4. Lead capture writes to PostgreSQL and updates user memory.
-5. Workflow actions create run records and audit logs.
-6. The dashboard reads analytics, activity logs, conversations, leads, workflows, and documents from the API.
-
-## Local Backend Setup
-```bash
-cd backend
-python -m venv .venv
-source .venv/bin/activate  # macOS/Linux
-.venv\Scripts\activate  # Windows
-pip install -r requirements.txt
-uvicorn app.main:app --reload
-```
+- Health check: http://localhost:8000/api/health
 
 ## Environment Variables
-- `DATABASE_URL` - PostgreSQL connection string
-- `JWT_SECRET` - JWT signing secret
-- `CHROMA_PATH` - persistent path for ChromaDB
-- `ALLOW_ORIGINS` - comma-separated CORS list
+Use the `.env.example` file as the base. The important runtime values are:
+
+- `DATABASE_URL` - PostgreSQL connection string.
+- `JWT_SECRET` - long random value used to sign tokens.
+- `ACCESS_TOKEN_EXPIRE_MINUTES` - token lifetime in minutes.
+- `CHROMA_PATH` - persistent Chroma storage path.
+- `FRONTEND_DIR` - local frontend path when the backend serves static files.
+- `ALLOW_ORIGINS` - comma-separated CORS origins.
+- `OLLAMA_URL` - optional Ollama endpoint if you want local LLM support.
+- `OLLAMA_MODEL` - optional Ollama model name.
+- `OLLAMA_TIMEOUT_SECONDS` - timeout for Ollama requests.
+
+## Hosting
+Recommended production layout:
+- Frontend on Vercel
+- Backend on Render
+- PostgreSQL on Neon, Supabase, or Render PostgreSQL
+
+The full step-by-step deployment instructions are in [DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md).
 
 ## Demo Flow
-1. Create account and login.
-2. Upload business documents (PDF or TXT).
-3. Ask the assistant questions; responses are grounded in uploads.
-4. Save leads and observe hot/warm/cold scoring.
-5. Trigger automations and view logs.
-6. Review dashboard analytics.
-
-## Notes
-- This MVP runs fully offline with a local embedding model.
-- For production, swap the `llm_stub.py` with an LLM provider.
-- Documents are stored in ChromaDB with metadata linking to SQL records.
-
-## Suggested Demo Script (5 min)
-1. Show login and dashboard KPIs.
-2. Upload a doc and ask a question.
-3. Capture a lead and show score.
-4. Run a workflow automation.
-5. Show analytics and logs.
+1. Create an account and log in.
+2. Show the overview dashboard and live metrics.
+3. Upload a document and ask a grounded question.
+4. Create a lead and show the score or status.
+5. Run a workflow and review the logs.
+6. Show audit entries and document management.
 
 ## Project Structure
-```
+```text
 backend/
   app/
     api/
@@ -109,6 +75,12 @@ frontend/
   styles.css
   app.js
 ```
+
+## Practical Notes
+- The app runs fully locally with Docker Compose.
+- For production, use a hosted PostgreSQL database and persistent storage for durable data.
+- The frontend can be pointed to any backend URL from its built-in API settings.
+- If Ollama is unavailable, the assistant falls back safely.
 
 ## License
 MIT
