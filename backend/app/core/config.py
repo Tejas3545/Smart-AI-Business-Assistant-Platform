@@ -26,3 +26,7 @@ settings = Settings()
 # normalizing the scheme to 'postgresql+asyncpg://' when '+asyncpg' is missing.
 if settings.database_url.startswith("postgresql://") and "+asyncpg" not in settings.database_url:
     settings.database_url = settings.database_url.replace("postgresql://", "postgresql+asyncpg://", 1)
+
+# Ensure asyncpg receives a valid ssl keyword argument instead of sslmode
+if "sslmode=" in settings.database_url:
+    settings.database_url = settings.database_url.replace("sslmode=", "ssl=")
