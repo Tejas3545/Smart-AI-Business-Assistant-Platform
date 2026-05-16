@@ -1,0 +1,81 @@
+import io
+
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
+from sqlalchemy import select
+from pypdf import PdfReader
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.api.deps import get_current_user, get_db
+from app.models.audit import AuditLog
+from app.schemas.doc import DocumentOut
+from app.services.rag import rag_store
+from app.models.document import Document
+
+router = APIRouter()
+
+
+def extract_text(file: UploadFile, data: bytes) -> str:
+    if file.content_type == "application/pdf":
+        reader = PdfReader(io.BytesIO(data))
+        return "\n".join(page.extract_text() or "" for page in reader.pages)
+    if file.content_type and file.content_type.startswith("text/"):
+        return data.decode("utf-8", errors="ignore")
+    if file.content_type in {None, "application/octet-stream"}:
+        return data.decode("utf-8", errors="ignore")
+    raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unsupported file type")
+
+
+@router.post("/upload", response_model=DocumentOut)
+async def upload_doc(
+    file: UploadFile = File(...),
+    db: AsyncSession = Depends(get_db),
+    user=Depends(get_current_user),
+) -> DocumentOut:
+    data = await file.read()
+    if not data:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Empty file")
+
+    text = extract_text(file, data)
+    document = await rag_store.add_document(
+        db,
+        user_id=user.id,
+        filename=file.filename or "document",
+        content=text,
+        content_type=file.content_type,
+        source="upload",
+    )
+
+    db.add(AuditLog(user_id=user.id, event_type="doc_upload", detail=file.filename))
+    await db.commit()
+
+    return document
+
+
+@router.get("/", response_model=list[DocumentOut])
+async def list_docs(
+    db: AsyncSession = Depends(get_db),
+    user=Depends(get_current_user),
+) -> list[DocumentOut]:
+    result = await db.execute(select(Document).where(Document.user_id == user.id))
+    return list(result.scalars().all())
+
+
+@router.delete("/{document_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_doc(
+    document_id: int,
+    db: AsyncSession = Depends(get_db),
+    user=Depends(get_current_user),
+) -> None:
+    result = await db.execute(
+        select(Document).where(Document.id == document_id, Document.user_id == user.id)
+    )
+    document = result.scalar_one_or_none()
+    if not document:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Document not found")
+
+    rag_store.delete_document(user.id, document.id)
+    await db.delete(document)
+    await db.commit()
+
+    db.add(AuditLog(user_id=user.id, event_type="doc_deleted", detail=document.filename))
+    await db.commit()

@@ -1,0 +1,217 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Smart AI Business Assistant</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700&family=Space+Mono:wght@400;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="shell">
+      <aside class="sidebar">
+        <div class="brand">
+          <p class="badge">AI Agent + Automation</p>
+          <h1>Smart AI Assistant</h1>
+          <p class="muted">Business ops cockpit for SMEs.</p>
+        </div>
+        <nav class="nav">
+          <button class="nav-btn active" data-nav="overview">Overview</button>
+          <button class="nav-btn" data-nav="assistant">Assistant</button>
+          <button class="nav-btn" data-nav="leads">Leads</button>
+          <button class="nav-btn" data-nav="automations">Automations</button>
+          <button class="nav-btn" data-nav="settings">Settings</button>
+        </nav>
+        <div class="sidebar-actions">
+          <button class="ghost" id="refresh-dashboard">Refresh Dashboard</button>
+        </div>
+      </aside>
+
+      <main class="content">
+        <header class="topbar">
+          <div>
+            <h2 id="view-title">Overview</h2>
+            <p class="muted" id="view-subtitle">Live system pulse and business activity.</p>
+          </div>
+          <button class="primary" id="toggle-config">API Settings</button>
+        </header>
+
+        <section class="panel config" id="config-panel">
+          <div>
+            <h3>API Configuration</h3>
+            <p class="muted">Point the dashboard to a running backend instance.</p>
+          </div>
+          <div class="row">
+            <input id="api-base" placeholder="http://localhost:8000" aria-label="API base URL" />
+            <button class="ghost" id="save-api">Save</button>
+          </div>
+        </section>
+
+        <section class="view active" data-view="overview">
+          <div class="kpi-grid">
+            <div class="card kpi">
+              <h4>Conversations</h4>
+              <p id="kpi-conversations">0</p>
+            </div>
+            <div class="card kpi">
+              <h4>Messages</h4>
+              <p id="kpi-messages">0</p>
+            </div>
+            <div class="card kpi">
+              <h4>Leads</h4>
+              <p id="kpi-leads">0</p>
+            </div>
+            <div class="card kpi">
+              <h4>Hot Leads</h4>
+              <p id="kpi-hot">0</p>
+            </div>
+            <div class="card kpi">
+              <h4>Workflows</h4>
+              <p id="kpi-workflows">0</p>
+            </div>
+            <div class="card kpi">
+              <h4>Documents</h4>
+              <p id="kpi-docs">0</p>
+            </div>
+            <div class="card kpi">
+              <h4>AI Tokens</h4>
+              <p id="kpi-ai-tokens">0</p>
+            </div>
+          </div>
+
+          <div class="grid two">
+            <div class="card">
+              <h3>Conversation Logs</h3>
+              <div id="conversation-list" class="list"></div>
+            </div>
+            <div class="card">
+              <h3>Workflow Logs</h3>
+              <div id="workflow-list" class="list"></div>
+            </div>
+          </div>
+
+          <div class="grid two">
+            <div class="card">
+              <h3>Activity Logs</h3>
+              <div id="audit-list" class="list"></div>
+            </div>
+            <div class="card">
+              <h3>Document Library</h3>
+              <div id="doc-list" class="list"></div>
+            </div>
+          </div>
+        </section>
+
+        <section class="view" data-view="assistant">
+          <div class="grid two">
+            <div class="card">
+              <h3>AI Assistant</h3>
+              <div class="chat" id="chat-log"></div>
+              <div class="row">
+                <input
+                  id="chat-input"
+                  placeholder="Ask about pricing, onboarding, or customer FAQs"
+                  aria-label="Chat message"
+                />
+                <button class="primary" id="send-chat">Send</button>
+              </div>
+            </div>
+            <div class="card">
+              <h3>Document Upload</h3>
+              <p class="muted">Upload business documents to power RAG responses.</p>
+              <div class="row">
+                <input id="doc-file" type="file" aria-label="Upload document" />
+                <button class="ghost" id="upload-doc">Upload</button>
+              </div>
+              <p class="muted" id="doc-status"></p>
+              <div class="divider"></div>
+              <h4>Managed Documents</h4>
+              <div id="doc-list-inline" class="list"></div>
+            </div>
+          </div>
+        </section>
+
+        <section class="view" data-view="leads">
+          <div class="grid two">
+            <div class="card">
+              <h3>Capture Lead</h3>
+              <div class="form">
+                <input id="lead-name" placeholder="Lead name" aria-label="Lead name" />
+                <input id="lead-email" placeholder="Email" aria-label="Lead email" />
+                <input id="lead-phone" placeholder="Phone" aria-label="Lead phone" />
+                <input id="lead-company" placeholder="Company" aria-label="Lead company" />
+                <textarea id="lead-interest" placeholder="Interest or request" aria-label="Lead interest"></textarea>
+                <button class="ghost" id="create-lead">Save Lead</button>
+                <p class="muted" id="lead-status"></p>
+              </div>
+            </div>
+            <div class="card">
+              <h3>Recent Leads</h3>
+              <div id="lead-list" class="list"></div>
+            </div>
+          </div>
+        </section>
+
+        <section class="view" data-view="automations">
+          <div class="grid two">
+            <div class="card">
+              <h3>Workflow Automations</h3>
+              <div class="form">
+                <select id="workflow-type" aria-label="Workflow type">
+                  <option value="email_summary">Email Summary</option>
+                  <option value="crm_sync">CRM Sync</option>
+                  <option value="calendar_booking">Calendar Booking</option>
+                </select>
+                <textarea
+                  id="workflow-payload"
+                  placeholder='{"subject": "Demo request"}'
+                  aria-label="Workflow payload"
+                ></textarea>
+                <button class="ghost" id="run-workflow">Run Workflow</button>
+                <p class="muted" id="workflow-status"></p>
+              </div>
+            </div>
+            <div class="card">
+              <h3>Workflow Logs</h3>
+              <div id="workflow-list" class="list"></div>
+            </div>
+          </div>
+        </section>
+
+        <section class="view" data-view="settings">
+          <div class="grid two">
+            <div class="card">
+              <h3>Authentication</h3>
+              <div class="auth">
+                <input id="signup-name" placeholder="Full name" aria-label="Full name" />
+                <input id="signup-email" placeholder="Email" aria-label="Email" />
+                <input id="signup-password" placeholder="Password" type="password" aria-label="Password" />
+                <button class="primary" id="signup-btn">Create Account</button>
+                <div class="divider"></div>
+                <input id="login-email" placeholder="Email" aria-label="Login email" />
+                <input id="login-password" placeholder="Password" type="password" aria-label="Login password" />
+                <button class="ghost" id="login-btn">Login</button>
+                <p class="muted" id="auth-status">Not authenticated</p>
+              </div>
+            </div>
+            <div class="card">
+              <h3>System Notes</h3>
+              <ul class="notes">
+                <li>Uploads are embedded locally using sentence transformers.</li>
+                <li>Responses are grounded in your documents with a safe fallback.</li>
+                <li>Change API base URL to connect to another deployment.</li>
+              </ul>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <script src="app.js"></script>
+  </body>
+</html>
