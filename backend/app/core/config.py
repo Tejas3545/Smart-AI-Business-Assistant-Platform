@@ -21,3 +21,10 @@ class Settings(BaseSettings):
 
 
 settings = Settings()
+
+# If a deploy platform (Render, Supabase) provides a DATABASE_URL like
+# 'postgresql://user:pass@host:port/db', SQLAlchemy async engine will try to
+# import a sync DBAPI (psycopg2). Ensure the async driver is used by
+# normalizing the scheme to 'postgresql+asyncpg://' when '+asyncpg' is missing.
+if settings.database_url.startswith("postgresql://") and "+asyncpg" not in settings.database_url:
+    settings.database_url = settings.database_url.replace("postgresql://", "postgresql+asyncpg://", 1)

@@ -14,4 +14,6 @@ COPY backend /app
 
 EXPOSE 8000
 
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Use the PORT env var provided by Render, default to 8000 when not set.
+# Use shell form so environment variable expansion works inside the container.
+CMD sh -c "uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}"

@@ -60,7 +60,61 @@ OLLAMA_TIMEOUT_SECONDS=30
 - `OLLAMA_MODEL`: Ollama model name.
 - `OLLAMA_TIMEOUT_SECONDS`: timeout for Ollama calls.
 
-## 3. What to actually set for hosting
+## 3. Vercel + Render + Supabase (brief)
+
+This is the recommended deployment path for your setup.
+
+1. Create a Supabase project.
+2. Copy the database connection string from Supabase.
+3. Deploy the backend on Render using `backend/Dockerfile`.
+4. Deploy the frontend on Vercel from the `frontend/` folder.
+5. Set the frontend API base to the Render backend URL.
+
+### Supabase settings
+
+- Open Supabase dashboard > Project > Settings > Database.
+- Copy the connection string under "Connection string".
+- Convert it to AsyncPG format if needed:
+
+```env
+DATABASE_URL=postgresql+asyncpg://postgres:YOUR_PASSWORD@YOUR_DB_HOST:5432/postgres?sslmode=require
+```
+
+- Use `JWT_SECRET` as a strong random phrase.
+- Use `CHROMA_PATH=./chroma_store_v1` and keep that path stable on Render.
+- Set `ALLOW_ORIGINS` to your Vercel app URL plus local testing URLs.
+
+### Render backend settings
+
+- Service type: Web Service.
+- Root Directory: leave blank (do not set to `backend`).
+- Dockerfile path: `backend/Dockerfile`.
+- Docker Build Context Directory: leave blank or set to `.`.
+- Environment variables: define them in Render's dashboard (do not commit `.env` to GitHub).
+- Choose a service region close to your users.
+- If Render supports persistent disk, mount it for `./chroma_store_v1`.
+- Copy the backend URL once deployment succeeds.
+
+> If Render reports `open Dockerfile: no such file or directory`, the Dockerfile path is wrong; the correct path is `backend/Dockerfile`.
+>
+> If Render reports `backend/requirements.txt: not found` or `/backend: not found`, the build context is wrong; use the repo root as the build context.
+
+### Vercel frontend settings
+
+- Import the repo and set the root directory to `frontend`.
+- Select "Other" or "Static Site" if prompted.
+- Build command: leave blank.
+- Output directory: leave blank or `.`.
+- Deploy the site.
+- Open the deployed frontend and enter the Render API URL in the built-in API Settings panel.
+
+### Why this works
+
+- Vercel hosts the static UI.
+- Render runs the FastAPI API.
+- Supabase provides managed PostgreSQL.
+
+## 4. What to actually set for hosting
 
 ### If you use Vercel for the frontend
 
@@ -84,7 +138,7 @@ Leave the Ollama values at their defaults. The app will still work and fall back
 
 If you do run Ollama, point `OLLAMA_URL` to the machine where Ollama is running.
 
-## 4. Step-by-step hosting process
+## 5. Step-by-step hosting process
 
 ### Step 1: Push the code to GitHub
 
