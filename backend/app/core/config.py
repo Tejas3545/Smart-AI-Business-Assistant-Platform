@@ -1,4 +1,4 @@
-from pydantic import BaseSettings
+from pydantic_settings import BaseSettings
 
 
 class Settings(BaseSettings):
@@ -15,9 +15,7 @@ class Settings(BaseSettings):
     ollama_model: str = "llama3.1:8b"
     ollama_timeout_seconds: int = 30
 
-    class Config:
-        env_file = ".env"
-        case_sensitive = False
+    model_config = {"env_file": ".env", "case_sensitive": False, "extra": "ignore"}
 
 
 settings = Settings()

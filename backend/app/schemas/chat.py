@@ -12,6 +12,8 @@ class ChatSource(BaseModel):
     document_id: int
     snippet: str
 
+    model_config = {"from_attributes": True}
+
 
 class ChatResponse(BaseModel):
     conversation_id: int
@@ -25,13 +27,11 @@ class MessageOut(BaseModel):
     role: str
     content: str
 
-    class Config:
-        orm_mode = True
+    model_config = {"from_attributes": True}
 
 
 class ConversationOut(BaseModel):
     id: int
     title: str
 
-    class Config:
-        orm_mode = True
+    model_config = {"from_attributes": True}

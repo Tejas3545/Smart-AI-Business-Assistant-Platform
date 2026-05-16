@@ -80,10 +80,12 @@ async def delete_doc(
     if not document:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Document not found")
 
+    # Capture filename before deletion — the ORM object becomes expired after commit
+    filename = document.filename
+
     rag = get_rag_store()
     rag.delete_document(user.id, document.id)
     await db.delete(document)
-    await db.commit()
 
-    db.add(AuditLog(user_id=user.id, event_type="doc_deleted", detail=document.filename))
+    db.add(AuditLog(user_id=user.id, event_type="doc_deleted", detail=filename))
     await db.commit()

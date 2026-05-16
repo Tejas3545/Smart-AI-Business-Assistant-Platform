@@ -7,5 +7,4 @@ class UserOut(BaseModel):
     full_name: str
     role: str
 
-    class Config:
-        orm_mode = True
+    model_config = {"from_attributes": True}

@@ -6,7 +6,7 @@ from app.api.deps import get_current_user, get_db
 from app.models.audit import AuditLog
 from app.models.conversation import Conversation
 from app.models.message import Message
-from app.schemas.chat import ChatRequest, ChatResponse, ConversationOut, MessageOut
+from app.schemas.chat import ChatRequest, ChatResponse, ChatSource, ConversationOut, MessageOut
 from app.services.agents import execute_plan, plan_intent, validate_response
 from app.services.memory import add_message, ensure_conversation
 from app.services.rag import get_rag_store
@@ -25,10 +25,17 @@ async def chat(
     await add_message(db, conversation.id, "user", payload.message)
 
     rag = get_rag_store()
-    sources = rag.query(user.id, payload.message)
+    raw_sources = rag.query(user.id, payload.message)
+    # Convert raw dicts to typed ChatSource objects for proper serialization
+    sources = [
+        ChatSource(document_id=s["document_id"], snippet=s["snippet"])
+        for s in raw_sources
+        if "document_id" in s and "snippet" in s
+    ]
+
     intent = plan_intent(payload.message)
-    result = execute_plan(intent, payload.message, sources)
-    reply = validate_response(result["reply"], sources)
+    result = execute_plan(intent, payload.message, raw_sources)
+    reply = validate_response(result["reply"], raw_sources)
 
     memories = await list_memory(db, user.id)
     if memories:

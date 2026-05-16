@@ -1,3 +1,4 @@
+from contextlib import asynccontextmanager
 from pathlib import Path
 
 from fastapi import FastAPI
@@ -13,7 +14,18 @@ from app import models  # noqa: F401
 
 setup_logging()
 
-app = FastAPI(title=settings.app_name)
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup: create all tables
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+    yield
+    # Shutdown: dispose the engine pool
+    await engine.dispose()
+
+
+app = FastAPI(title=settings.app_name, lifespan=lifespan)
 
 origins = [origin.strip() for origin in settings.allow_origins.split(",") if origin.strip()]
 
@@ -35,12 +47,6 @@ app.include_router(analytics.router, prefix="/api/analytics", tags=["analytics"]
 frontend_path = (Path(__file__).parent / settings.frontend_dir).resolve()
 if frontend_path.exists():
     app.mount("/", StaticFiles(directory=str(frontend_path), html=True), name="frontend")
-
-
-@app.on_event("startup")
-async def on_startup() -> None:
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
 
 
 @app.get("/api/health")

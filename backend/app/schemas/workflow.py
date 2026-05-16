@@ -13,5 +13,4 @@ class WorkflowOut(BaseModel):
     input_summary: str | None = None
     output_summary: str | None = None
 
-    class Config:
-        orm_mode = True
+    model_config = {"from_attributes": True}
