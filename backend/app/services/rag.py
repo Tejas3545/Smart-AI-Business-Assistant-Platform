@@ -1,7 +1,5 @@
-from typing import List
+from typing import List, Optional
 
-import chromadb
-from chromadb.utils.embedding_functions import SentenceTransformerEmbeddingFunction
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
@@ -11,6 +9,11 @@ from app.models.document import Document
 
 class RAGStore:
     def __init__(self) -> None:
+        # Defer heavy imports until initialization so the web service can start
+        # without loading ML dependencies.
+        import chromadb
+        from chromadb.utils.embedding_functions import SentenceTransformerEmbeddingFunction
+
         embedding_fn = SentenceTransformerEmbeddingFunction(model_name="all-MiniLM-L6-v2")
         self.client = chromadb.PersistentClient(path=settings.chroma_path)
         self.collection = self.client.get_or_create_collection(
@@ -80,4 +83,11 @@ class RAGStore:
         return matches
 
 
-rag_store = RAGStore()
+_rag_singleton: Optional[RAGStore] = None
+
+
+def get_rag_store() -> RAGStore:
+    global _rag_singleton
+    if _rag_singleton is None:
+        _rag_singleton = RAGStore()
+    return _rag_singleton

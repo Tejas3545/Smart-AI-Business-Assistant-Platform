@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.api.deps import get_current_user, get_db
 from app.models.audit import AuditLog
 from app.schemas.doc import DocumentOut
-from app.services.rag import rag_store
+from app.services.rag import get_rag_store
 from app.models.document import Document
 
 router = APIRouter()
@@ -36,7 +36,8 @@ async def upload_doc(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Empty file")
 
     text = extract_text(file, data)
-    document = await rag_store.add_document(
+    rag = get_rag_store()
+    document = await rag.add_document(
         db,
         user_id=user.id,
         filename=file.filename or "document",
@@ -73,7 +74,8 @@ async def delete_doc(
     if not document:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Document not found")
 
-    rag_store.delete_document(user.id, document.id)
+    rag = get_rag_store()
+    rag.delete_document(user.id, document.id)
     await db.delete(document)
     await db.commit()
 

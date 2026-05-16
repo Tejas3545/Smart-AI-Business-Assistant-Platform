@@ -9,7 +9,7 @@ from app.models.message import Message
 from app.schemas.chat import ChatRequest, ChatResponse, ConversationOut, MessageOut
 from app.services.agents import execute_plan, plan_intent, validate_response
 from app.services.memory import add_message, ensure_conversation
-from app.services.rag import rag_store
+from app.services.rag import get_rag_store
 from app.services.user_memory import list_memory
 
 router = APIRouter()
@@ -24,7 +24,8 @@ async def chat(
     conversation = await ensure_conversation(db, user.id, payload.conversation_id)
     await add_message(db, conversation.id, "user", payload.message)
 
-    sources = rag_store.query(user.id, payload.message)
+    rag = get_rag_store()
+    sources = rag.query(user.id, payload.message)
     intent = plan_intent(payload.message)
     result = execute_plan(intent, payload.message, sources)
     reply = validate_response(result["reply"], sources)
