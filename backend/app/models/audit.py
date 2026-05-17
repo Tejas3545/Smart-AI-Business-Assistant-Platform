@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from sqlalchemy import DateTime, ForeignKey, Integer, String, Text, func
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -11,4 +13,4 @@ class AuditLog(Base):
     user_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"), nullable=True)
     event_type: Mapped[str] = mapped_column(String(80), nullable=False)
     detail: Mapped[str] = mapped_column(Text, nullable=True)
-    created_at: Mapped[str] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())

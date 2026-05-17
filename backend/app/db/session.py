@@ -9,6 +9,7 @@ engine = create_async_engine(
     pool_pre_ping=True,
     pool_recycle=1800,  # Recycle connections every 30 min (Render closes idle ones)
     pool_size=5,
+    connect_args={"statement_cache_size": 0},
 )
 
 AsyncSessionLocal = sessionmaker(
