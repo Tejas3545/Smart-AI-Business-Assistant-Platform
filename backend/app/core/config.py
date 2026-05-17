@@ -12,7 +12,7 @@ class Settings(BaseSettings):
     access_token_expire_minutes: int = 60
     chroma_path: str = "./chroma_store"
     frontend_dir: str = "../frontend"
-    allow_origins: str = "http://localhost:5173,http://localhost:8000,http://localhost:8080"
+    allow_origins: str = "http://localhost:5173,http://localhost:8000,http://localhost:8080,https://smart-ai-business-assistant-platfor.vercel.app"
     llm_mode: str = "local"
     ollama_url: str = "http://localhost:11434"
     ollama_model: str = "llama3.1:8b"

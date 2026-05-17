@@ -1,5 +1,5 @@
 const state = {
-  apiBase: localStorage.getItem("apiBase") || "http://localhost:8000",
+  apiBase: localStorage.getItem("apiBase") || "https://smart-ai-business-assistant-platform.onrender.com",
   token: localStorage.getItem("token") || null,
   conversationId: null,
 };
