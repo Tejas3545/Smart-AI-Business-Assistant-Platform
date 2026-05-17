@@ -32,6 +32,6 @@ class MessageOut(BaseModel):
 
 class ConversationOut(BaseModel):
     id: int
-    title: str
+    title: str | None = "New Conversation"
 
     model_config = {"from_attributes": True}

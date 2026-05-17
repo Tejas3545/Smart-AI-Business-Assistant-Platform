@@ -208,7 +208,10 @@
               <div class="card chat-card">
                 <div class="card-header">
                   <h3>AI Assistant</h3>
-                  <span class="badge primary">Online</span>
+                  <div class="action-row">
+                    <button class="secondary btn-sm" id="new-chat">New Chat</button>
+                    <button class="ghost btn-sm" id="delete-chat">Delete Chat</button>
+                  </div>
                 </div>
                 <div class="chat" id="chat-log">
                   <div class="bubble assistant">Hello! I'm your AI business assistant. How can I help you today?</div>
@@ -223,6 +226,12 @@
                     <svg xmlns="http://www.w3.org/-2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
                   </button>
                 </div>
+                <div class="divider"></div>
+                <div class="card-header compact-header">
+                  <h4>Chat History</h4>
+                  <button class="ghost btn-sm" id="delete-all-chats">Delete All</button>
+                </div>
+                <div id="chat-history" class="list compact"></div>
               </div>
               <div class="card layout-stack">
                 <div class="card-header">

@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -10,7 +10,6 @@ from app.schemas.chat import ChatRequest, ChatResponse, ChatSource, Conversation
 from app.services.agents import execute_plan, plan_intent, validate_response
 from app.services.memory import add_message, ensure_conversation
 from app.services.rag import get_rag_store
-from app.services.user_memory import list_memory
 
 router = APIRouter()
 
@@ -22,6 +21,10 @@ async def chat(
     user=Depends(get_current_user),
 ) -> ChatResponse:
     conversation = await ensure_conversation(db, user.id, payload.conversation_id)
+    if not conversation.title or conversation.title == "New Conversation":
+        words = payload.message.strip().split()
+        if words:
+            conversation.title = " ".join(words[:6])[:255]
     await add_message(db, conversation.id, "user", payload.message)
 
     rag = get_rag_store()
@@ -36,11 +39,6 @@ async def chat(
     intent = plan_intent(payload.message)
     result = execute_plan(intent, payload.message, raw_sources)
     reply = validate_response(result["reply"], raw_sources)
-
-    memories = await list_memory(db, user.id)
-    if memories:
-        memory_lines = "; ".join(f"{item.key}: {item.value}" for item in memories[:3])
-        reply = f"{reply}\n\nSaved memory: {memory_lines}"
 
     await add_message(db, conversation.id, "assistant", reply)
 
@@ -60,7 +58,9 @@ async def list_conversations(
     db: AsyncSession = Depends(get_db),
     user=Depends(get_current_user),
 ) -> list[ConversationOut]:
-    result = await db.execute(select(Conversation).where(Conversation.user_id == user.id))
+    result = await db.execute(
+        select(Conversation).where(Conversation.user_id == user.id).order_by(Conversation.created_at.desc())
+    )
     return list(result.scalars().all())
 
 
@@ -70,6 +70,12 @@ async def list_messages(
     db: AsyncSession = Depends(get_db),
     user=Depends(get_current_user),
 ) -> list[MessageOut]:
+    owns_conversation = await db.execute(
+        select(Conversation.id).where(Conversation.id == conversation_id, Conversation.user_id == user.id)
+    )
+    if not owns_conversation.scalar_one_or_none():
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Conversation not found")
+
     result = await db.execute(
         select(Message)
         .join(Conversation, Conversation.id == Message.conversation_id)
@@ -77,3 +83,45 @@ async def list_messages(
         .order_by(Message.created_at.asc())
     )
     return list(result.scalars().all())
+
+
+@router.delete("/conversations/{conversation_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_conversation(
+    conversation_id: int,
+    db: AsyncSession = Depends(get_db),
+    user=Depends(get_current_user),
+) -> None:
+    result = await db.execute(
+        select(Conversation).where(Conversation.id == conversation_id, Conversation.user_id == user.id)
+    )
+    conversation = result.scalar_one_or_none()
+    if not conversation:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Conversation not found")
+
+    message_result = await db.execute(
+        select(Message).where(Message.conversation_id == conversation_id)
+    )
+    for msg in message_result.scalars().all():
+        await db.delete(msg)
+    await db.delete(conversation)
+    db.add(AuditLog(user_id=user.id, event_type="chat_deleted", detail=f"conversation_id={conversation_id}"))
+    await db.commit()
+
+
+@router.delete("/conversations", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_all_conversations(
+    db: AsyncSession = Depends(get_db),
+    user=Depends(get_current_user),
+) -> None:
+    convo_result = await db.execute(select(Conversation).where(Conversation.user_id == user.id))
+    conversations = convo_result.scalars().all()
+    for conversation in conversations:
+        message_result = await db.execute(
+            select(Message).where(Message.conversation_id == conversation.id)
+        )
+        for msg in message_result.scalars().all():
+            await db.delete(msg)
+        await db.delete(conversation)
+
+    db.add(AuditLog(user_id=user.id, event_type="chat_deleted_all", detail=f"count={len(conversations)}"))
+    await db.commit()

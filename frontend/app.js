@@ -2,6 +2,8 @@ const state = {
   apiBase: "https://smart-ai-business-assistant-platform.onrender.com",
   token: localStorage.getItem("token") || null,
   conversationId: null,
+  conversationsCache: [],
+  conversationsFetchedAt: 0,
 };
 
 const elements = {
@@ -27,6 +29,10 @@ const elements = {
   chatLog: document.getElementById("chat-log"),
   chatInput: document.getElementById("chat-input"),
   sendChat: document.getElementById("send-chat"),
+  newChat: document.getElementById("new-chat"),
+  deleteChat: document.getElementById("delete-chat"),
+  deleteAllChats: document.getElementById("delete-all-chats"),
+  chatHistory: document.getElementById("chat-history"),
   
   leadName: document.getElementById("lead-name"),
   leadEmail: document.getElementById("lead-email"),
@@ -143,6 +149,12 @@ const addChatBubble = (role, content) => {
   bubble.textContent = content;
   elements.chatLog.appendChild(bubble);
   elements.chatLog.scrollTop = elements.chatLog.scrollHeight;
+};
+
+const formatAssistantMessage = (message) => {
+  if (!message) return "I couldn't generate a response.";
+  const withoutMemory = message.split("\n\nSaved memory:")[0];
+  return withoutMemory.replace(/\n{3,}/g, "\n\n").trim();
 };
 
 // --- DATA FETCHING ---
@@ -272,15 +284,64 @@ const fetchWorkflows = async () => {
     .join("");
 };
 
-const fetchConversations = async () => {
+const fetchConversations = async (force = false) => {
+  const now = Date.now();
+  if (!force && state.conversationsCache.length && now - state.conversationsFetchedAt < 30000) {
+    return state.conversationsCache;
+  }
   const response = await fetch(`${state.apiBase}/api/chat/conversations`, { headers: headers() });
-  if (!response.ok) return;
+  if (!response.ok) return [];
   const conversations = await response.json();
+  state.conversationsCache = conversations;
+  state.conversationsFetchedAt = now;
+  return conversations;
+};
+
+const renderChatHistory = (conversations) => {
   if (!conversations.length) {
-    elements.conversationList.innerHTML = `<div class="item empty-state">No conversations yet.</div>`;
+    elements.chatHistory.innerHTML = `<div class="item empty-state">No chat history.</div>`;
     return;
   }
-  const latest = conversations[conversations.length - 1];
+
+  elements.chatHistory.innerHTML = conversations
+    .map(
+      (conversation) => `
+      <div class="item history-item ${state.conversationId === conversation.id ? "active" : ""}" data-conversation-id="${conversation.id}">
+        <div class="history-item-header">
+          <span class="history-title">${conversation.title || `Conversation #${conversation.id}`}</span>
+          <button class="icon-btn text-danger" data-delete-conversation-id="${conversation.id}" title="Delete chat">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"></path></svg>
+          </button>
+        </div>
+      </div>`
+    )
+    .join("");
+
+  document.querySelectorAll("[data-conversation-id]").forEach((item) => {
+    item.addEventListener("click", async (event) => {
+      if (event.target.closest("[data-delete-conversation-id]")) return;
+      const id = Number(item.dataset.conversationId);
+      await loadConversation(id);
+    });
+  });
+
+  document.querySelectorAll("[data-delete-conversation-id]").forEach((button) => {
+    button.addEventListener("click", async (event) => {
+      event.stopPropagation();
+      await deleteConversation(Number(button.dataset.deleteConversationId));
+    });
+  });
+};
+
+const fetchOverviewConversations = async () => {
+  const conversations = await fetchConversations();
+  if (!conversations.length) {
+    elements.conversationList.innerHTML = `<div class="item empty-state">No conversations yet.</div>`;
+    renderChatHistory([]);
+    return;
+  }
+  renderChatHistory(conversations);
+  const latest = conversations[0];
   const messagesResponse = await fetch(
     `${state.apiBase}/api/chat/${latest.id}/messages`,
     { headers: headers() }
@@ -299,13 +360,32 @@ const fetchConversations = async () => {
     .join("");
 };
 
+const loadConversation = async (conversationId) => {
+  const response = await fetch(`${state.apiBase}/api/chat/${conversationId}/messages`, { headers: headers() });
+  if (!response.ok) return;
+  const messages = await response.json();
+  state.conversationId = conversationId;
+  elements.chatLog.innerHTML = "";
+  if (!messages.length) {
+    addChatBubble("assistant", "This chat is empty. Ask me anything.");
+  } else {
+    messages.forEach((message) => addChatBubble(message.role, message.content));
+  }
+  renderChatHistory(state.conversationsCache);
+};
+
+const refreshChatHistory = async (force = false) => {
+  const conversations = await fetchConversations(force);
+  renderChatHistory(conversations);
+};
+
 const refreshDashboard = async () => {
   if (!state.token) return;
   await Promise.all([
     fetchSummary(),
     fetchLeads(),
     fetchWorkflows(),
-    fetchConversations(),
+    fetchOverviewConversations(),
     fetchAuditLogs(),
     fetchDocuments(),
   ]);
@@ -416,11 +496,60 @@ const sendChat = async () => {
   }
   const data = await response.json();
   state.conversationId = data.conversation_id;
-  addChatBubble("assistant", data.assistant_message);
+  addChatBubble("assistant", formatAssistantMessage(data.assistant_message));
   if (data.lead_hint) {
     showMessage(elements.leadStatus, data.lead_hint);
   }
+  state.conversationsFetchedAt = 0;
+  await refreshChatHistory(true);
   refreshDashboard();
+};
+
+const startNewChat = async () => {
+  state.conversationId = null;
+  elements.chatLog.innerHTML = "";
+  addChatBubble("assistant", "New chat started. How can I help you?");
+  await refreshChatHistory();
+};
+
+const deleteConversation = async (conversationId) => {
+  const response = await fetch(`${state.apiBase}/api/chat/conversations/${conversationId}`, {
+    method: "DELETE",
+    headers: headers(),
+  });
+  if (!response.ok) return;
+
+  if (state.conversationId === conversationId) {
+    state.conversationId = null;
+    elements.chatLog.innerHTML = "";
+    addChatBubble("assistant", "Chat deleted. Start a new conversation.");
+  }
+  state.conversationsFetchedAt = 0;
+  await refreshChatHistory(true);
+  await fetchOverviewConversations();
+};
+
+const deleteCurrentChat = async () => {
+  if (!state.conversationId) {
+    showMessage(elements.leadStatus, "No active chat to delete.", true);
+    return;
+  }
+  await deleteConversation(state.conversationId);
+};
+
+const deleteAllChats = async () => {
+  const response = await fetch(`${state.apiBase}/api/chat/conversations`, {
+    method: "DELETE",
+    headers: headers(),
+  });
+  if (!response.ok) return;
+  state.conversationId = null;
+  state.conversationsCache = [];
+  state.conversationsFetchedAt = 0;
+  elements.chatLog.innerHTML = "";
+  addChatBubble("assistant", "All chats deleted. Start a new conversation.");
+  renderChatHistory([]);
+  await fetchOverviewConversations();
 };
 
 const createLead = async () => {
@@ -495,6 +624,9 @@ const showView = (viewName) => {
     elements.viewTitle.textContent = meta.title;
     elements.viewSubtitle.textContent = meta.subtitle;
   }
+  if (viewName === "assistant") {
+    refreshChatHistory();
+  }
 };
 
 const init = () => {
@@ -533,6 +665,9 @@ const init = () => {
   
   elements.createLead.addEventListener("click", createLead);
   elements.runWorkflow.addEventListener("click", runWorkflow);
+  elements.newChat.addEventListener("click", startNewChat);
+  elements.deleteChat.addEventListener("click", deleteCurrentChat);
+  elements.deleteAllChats.addEventListener("click", deleteAllChats);
   
   elements.navButtons.forEach((button) => {
     button.addEventListener("click", () => {
