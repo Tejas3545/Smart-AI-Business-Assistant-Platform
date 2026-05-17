@@ -12,7 +12,6 @@ httpx==0.28.1
 tenacity==9.1.4
 pypdf
 chromadb==0.5.23
-sentence-transformers==3.3.1
 numpy==1.26.4
 
 # RAG dependencies are required for full local parity with production.

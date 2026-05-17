@@ -92,9 +92,8 @@ async def _run_schema_repair_migrations() -> None:
 def _check_rag_runtime_readiness() -> None:
     try:
         import chromadb  # noqa: F401
-        import sentence_transformers  # noqa: F401
         import numpy  # noqa: F401
-        logger.info("RAG runtime check passed: chromadb, sentence-transformers, numpy available.")
+        logger.info("RAG runtime check passed: chromadb and numpy available.")
     except Exception as exc:
         logger.error("RAG runtime check failed: %s", exc)
 
@@ -156,6 +155,10 @@ app.include_router(analytics.router, prefix="/api/analytics", tags=["analytics"]
 frontend_path = (Path(__file__).parent / settings.frontend_dir).resolve()
 if frontend_path.exists():
     app.mount("/", StaticFiles(directory=str(frontend_path), html=True), name="frontend")
+else:
+    @app.get("/")
+    async def root() -> dict:
+        return {"status": "ok", "service": settings.app_name, "health": "/api/health"}
 
 
 @app.get("/api/health")

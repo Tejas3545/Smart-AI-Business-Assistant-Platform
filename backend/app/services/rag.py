@@ -9,12 +9,12 @@ from app.models.document import Document
 
 class RAGStore:
     def __init__(self) -> None:
-        # Defer heavy imports until initialization so the web service can start
-        # without loading ML dependencies.
+        # Use Chroma's ONNX embedding path (lighter than sentence-transformers/torch)
+        # to avoid memory spikes on small Render instances.
         import chromadb
-        from chromadb.utils.embedding_functions import SentenceTransformerEmbeddingFunction
+        from chromadb.utils.embedding_functions import ONNXMiniLM_L6_V2
 
-        embedding_fn = SentenceTransformerEmbeddingFunction(model_name="all-MiniLM-L6-v2")
+        embedding_fn = ONNXMiniLM_L6_V2(preferred_providers=["CPUExecutionProvider"])
         self.client = chromadb.PersistentClient(path=settings.chroma_path)
         self.collection = self.client.get_or_create_collection(
             name="business_docs",
