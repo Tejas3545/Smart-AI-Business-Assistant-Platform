@@ -86,14 +86,30 @@ const headers = () => ({
   ...(state.token ? { Authorization: `Bearer ${state.token}` } : {}),
 });
 
-const updateAuthStatus = () => {
+const updateAuthStatus = async () => {
   if (state.token) {
     elements.authApp.classList.remove("active");
     elements.dashboardApp.classList.add("active");
+    await fetchUserProfile();
     refreshDashboard();
   } else {
     elements.authApp.classList.add("active");
     elements.dashboardApp.classList.remove("active");
+  }
+};
+
+const fetchUserProfile = async () => {
+  const response = await fetch(`${state.apiBase}/api/auth/me`, {
+    headers: headers(),
+  });
+  if (response.ok) {
+    const user = await response.json();
+    const userNameEl = document.querySelector(".user-name");
+    if (userNameEl) {
+      userNameEl.textContent = user.full_name || user.email;
+    }
+  } else {
+    logout();
   }
 };
 

@@ -16,11 +16,34 @@ from app import models  # noqa: F401
 setup_logging()
 
 
+from sqlalchemy import text
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Startup: create all tables
+    # Startup: apply schema migrations and create tables
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+        
+        # Run raw migrations to fix schema drifts on existing tables
+        migrations = [
+            "ALTER TABLE messages ADD COLUMN IF NOT EXISTS tokens INTEGER DEFAULT 0 NOT NULL;",
+            "ALTER TABLE conversations ALTER COLUMN title DROP NOT NULL;",
+            "ALTER TABLE audit_logs ALTER COLUMN created_at TYPE TIMESTAMP USING created_at::timestamp;",
+            "ALTER TABLE conversations ALTER COLUMN created_at TYPE TIMESTAMP USING created_at::timestamp;",
+            "ALTER TABLE documents ALTER COLUMN created_at TYPE TIMESTAMP USING created_at::timestamp;",
+            "ALTER TABLE leads ALTER COLUMN created_at TYPE TIMESTAMP USING created_at::timestamp;",
+            "ALTER TABLE messages ALTER COLUMN created_at TYPE TIMESTAMP USING created_at::timestamp;",
+            "ALTER TABLE user_memories ALTER COLUMN created_at TYPE TIMESTAMP USING created_at::timestamp;",
+            "ALTER TABLE users ALTER COLUMN created_at TYPE TIMESTAMP USING created_at::timestamp;",
+            "ALTER TABLE workflow_runs ALTER COLUMN created_at TYPE TIMESTAMP USING created_at::timestamp;"
+        ]
+        for query in migrations:
+            try:
+                await conn.execute(text(query))
+            except Exception as e:
+                # Ignore errors if columns already cast or tables don't exist
+                pass
+
     yield
     # Shutdown: dispose the engine pool
     await engine.dispose()
