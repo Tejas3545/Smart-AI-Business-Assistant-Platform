@@ -1,3 +1,4 @@
+from pydantic import AliasChoices, Field
 from pydantic_settings import BaseSettings
 
 
@@ -6,13 +7,22 @@ class Settings(BaseSettings):
     # No default — must be provided via DATABASE_URL environment variable on Render.
     # A missing value will raise a clear ValidationError at startup instead of
     # silently attempting to connect to an unreachable Docker Compose hostname.
-    database_url: str
-    jwt_secret: str = "change-me"
-    jwt_algorithm: str = "HS256"
+    database_url: str = Field(validation_alias=AliasChoices("DATABASE_URL", "database_url"))
+    jwt_secret: str = Field(
+        default="change-me",
+        validation_alias=AliasChoices("JWT_SECRET", "SECRET_KEY", "jwt_secret"),
+    )
+    jwt_algorithm: str = Field(
+        default="HS256",
+        validation_alias=AliasChoices("JWT_ALGORITHM", "ALGORITHM", "jwt_algorithm"),
+    )
     access_token_expire_minutes: int = 60
-    chroma_path: str = "./chroma_store"
-    frontend_dir: str = "../frontend"
-    allow_origins: str = "http://localhost:5173,http://localhost:8000,http://localhost:8080,https://smart-ai-business-assistant-platfor.vercel.app"
+    chroma_path: str = Field(default="./chroma_store_v1", validation_alias=AliasChoices("CHROMA_PATH", "chroma_path"))
+    frontend_dir: str = Field(default="../frontend", validation_alias=AliasChoices("FRONTEND_DIR", "frontend_dir"))
+    allow_origins: str = Field(
+        default="http://localhost:5173,http://localhost:8000,http://localhost:8080,https://smart-ai-business-assistant-platform.vercel.app,https://smart-ai-business-assistant-platfor.vercel.app",
+        validation_alias=AliasChoices("ALLOW_ORIGINS", "allow_origins"),
+    )
     llm_mode: str = "local"
     ollama_url: str = "http://localhost:11434"
     ollama_model: str = "llama3.1:8b"

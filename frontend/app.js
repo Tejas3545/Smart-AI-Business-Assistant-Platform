@@ -394,7 +394,8 @@ const uploadDocument = async () => {
     showMessage(elements.docStatus, "Document uploaded and indexed successfully.");
     refreshDashboard();
   } else {
-    showMessage(elements.docStatus, "Upload failed.", true);
+    const detail = await readErrorMessage(response);
+    showMessage(elements.docStatus, detail || "Upload failed.", true);
   }
 };
 
@@ -453,7 +454,8 @@ const createLead = async () => {
     elements.leadInterest.value = "";
     refreshDashboard();
   } else {
-    showMessage(elements.leadStatus, "Failed to save lead.", true);
+    const detail = await readErrorMessage(response);
+    showMessage(elements.leadStatus, detail || "Failed to save lead.", true);
   }
 };
 

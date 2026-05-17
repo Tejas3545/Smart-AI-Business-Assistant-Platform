@@ -1,5 +1,8 @@
-from fastapi import APIRouter, Depends, HTTPException
+import logging
+
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_user, get_db
@@ -10,6 +13,7 @@ from app.services.leads import update_lead_with_score
 from app.services.user_memory import upsert_memory
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
 
 
 @router.post("/", response_model=LeadOut)
@@ -28,16 +32,31 @@ async def create_lead(
         notes=payload.notes,
     )
     lead = update_lead_with_score(lead)
-    db.add(lead)
-    await db.commit()
-    await db.refresh(lead)
 
-    db.add(AuditLog(user_id=user.id, event_type="lead_created", detail=lead.name))
-    await db.commit()
+    try:
+        db.add(lead)
+        await db.commit()
+        await db.refresh(lead)
 
-    await upsert_memory(db, user.id, "last_lead", f"{lead.name} ({lead.status})")
+        db.add(AuditLog(user_id=user.id, event_type="lead_created", detail=lead.name))
+        await db.commit()
 
-    return lead
+        await upsert_memory(db, user.id, "last_lead", f"{lead.name} ({lead.status})")
+        return lead
+    except SQLAlchemyError as exc:
+        logger.exception("Lead create failed due to database error")
+        await db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Database schema/state issue while creating lead. Check leads table migration on startup.",
+        ) from exc
+    except Exception as exc:
+        logger.exception("Lead create failed unexpectedly")
+        await db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Lead creation failed: {type(exc).__name__}: {exc}",
+        ) from exc
 
 
 @router.get("/", response_model=list[LeadOut])

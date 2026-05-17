@@ -1,16 +1,19 @@
 import io
+import logging
 
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
 from sqlalchemy import select
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_user, get_db
 from app.models.audit import AuditLog
+from app.models.document import Document
 from app.schemas.doc import DocumentOut
 from app.services.rag import get_rag_store
-from app.models.document import Document
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
 
 
 def extract_text(file: UploadFile, data: bytes) -> str:
@@ -37,25 +40,48 @@ async def upload_doc(
     db: AsyncSession = Depends(get_db),
     user=Depends(get_current_user),
 ) -> DocumentOut:
-    data = await file.read()
-    if not data:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Empty file")
+    try:
+        data = await file.read()
+        if not data:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Empty file")
 
-    text = extract_text(file, data)
-    rag = get_rag_store()
-    document = await rag.add_document(
-        db,
-        user_id=user.id,
-        filename=file.filename or "document",
-        content=text,
-        content_type=file.content_type,
-        source="upload",
-    )
+        text = extract_text(file, data)
+        rag = get_rag_store()
+        document = await rag.add_document(
+            db,
+            user_id=user.id,
+            filename=file.filename or "document",
+            content=text,
+            content_type=file.content_type,
+            source="upload",
+        )
 
-    db.add(AuditLog(user_id=user.id, event_type="doc_upload", detail=file.filename))
-    await db.commit()
-
-    return document
+        db.add(AuditLog(user_id=user.id, event_type="doc_upload", detail=file.filename))
+        await db.commit()
+        return document
+    except HTTPException:
+        raise
+    except ImportError as exc:
+        logger.exception("Upload dependency import failure")
+        await db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Upload dependency missing: {exc}",
+        ) from exc
+    except SQLAlchemyError as exc:
+        logger.exception("Database failure while uploading document")
+        await db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Database error while storing document.",
+        ) from exc
+    except Exception as exc:
+        logger.exception("Unexpected upload failure")
+        await db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Document upload failed: {type(exc).__name__}: {exc}",
+        ) from exc
 
 
 @router.get("/", response_model=list[DocumentOut])
@@ -73,19 +99,27 @@ async def delete_doc(
     db: AsyncSession = Depends(get_db),
     user=Depends(get_current_user),
 ) -> None:
-    result = await db.execute(
-        select(Document).where(Document.id == document_id, Document.user_id == user.id)
-    )
-    document = result.scalar_one_or_none()
-    if not document:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Document not found")
+    try:
+        result = await db.execute(
+            select(Document).where(Document.id == document_id, Document.user_id == user.id)
+        )
+        document = result.scalar_one_or_none()
+        if not document:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Document not found")
 
-    # Capture filename before deletion — the ORM object becomes expired after commit
-    filename = document.filename
+        filename = document.filename
+        rag = get_rag_store()
+        rag.delete_document(user.id, document.id)
+        await db.delete(document)
 
-    rag = get_rag_store()
-    rag.delete_document(user.id, document.id)
-    await db.delete(document)
-
-    db.add(AuditLog(user_id=user.id, event_type="doc_deleted", detail=filename))
-    await db.commit()
+        db.add(AuditLog(user_id=user.id, event_type="doc_deleted", detail=filename))
+        await db.commit()
+    except HTTPException:
+        raise
+    except Exception as exc:
+        logger.exception("Document delete failed")
+        await db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Document delete failed: {type(exc).__name__}: {exc}",
+        ) from exc

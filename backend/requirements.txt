@@ -13,7 +13,8 @@ httpx==0.27.0
 tenacity==9.0.0
 pypdf==4.3.1
 psycopg2-binary==2.9.10
+chromadb==0.5.23
+sentence-transformers==3.3.1
+numpy==1.26.4
 
-# chromadb and sentence-transformers are intentionally excluded.
-# They are lazily imported in rag.py and only loaded when RAG features are accessed.
-# To enable RAG locally, install: pip install chromadb sentence-transformers numpy
+# RAG dependencies are required in production for upload+index flows.

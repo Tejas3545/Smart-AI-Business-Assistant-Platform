@@ -14,8 +14,8 @@ Smart AI Business Assistant Platform is a compact AI operations dashboard. It co
 2. **Create `.env` file** in repo root:
    ```env
    DATABASE_URL=postgresql+asyncpg://user:password@localhost:5432/smart_ai
-   SECRET_KEY=dev-secret-key
-   ALGORITHM=HS256
+   JWT_SECRET=dev-secret-key
+   JWT_ALGORITHM=HS256
    ACCESS_TOKEN_EXPIRE_MINUTES=30
    ```
 
@@ -44,7 +44,7 @@ See [DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md) for complete step-by-step instruc
 **In short:**
 1. Create Supabase PostgreSQL database
 2. Create Render web service (connects to GitHub, auto-deploys on push)
-3. Set `DATABASE_URL` and `SECRET_KEY` in Render environment
+3. Set `DATABASE_URL` and `JWT_SECRET` in Render environment
 4. Deploy frontend to Vercel
 5. Update `API_BASE` in [frontend/app.js](frontend/app.js)
 
@@ -143,8 +143,8 @@ Same as production, but allows for easier updates.
 
 ### Required for Production
 - `DATABASE_URL`: PostgreSQL connection string with `postgresql+asyncpg://` format
-- `SECRET_KEY`: Random 32+ character string for JWT signing
-- `ALGORITHM`: JWT algorithm (default: `HS256`)
+- `JWT_SECRET` (or `SECRET_KEY`): Random 32+ character string for JWT signing
+- `JWT_ALGORITHM` (or `ALGORITHM`): JWT algorithm (default: `HS256`)
 - `ACCESS_TOKEN_EXPIRE_MINUTES`: Token lifetime (default: `30`)
 
 ### Optional
