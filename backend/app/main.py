@@ -1,8 +1,9 @@
 from contextlib import asynccontextmanager
 from pathlib import Path
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 
 from app.api.routes import analytics, auth, chat, docs, leads, workflows
@@ -27,7 +28,7 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title=settings.app_name, lifespan=lifespan)
 
-origins = [origin.strip() for origin in settings.allow_origins.split(",") if origin.strip()]
+origins = [origin.strip().rstrip("/") for origin in settings.allow_origins.split(",") if origin.strip()]
 
 app.add_middleware(
     CORSMiddleware,
@@ -36,6 +37,27 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception) -> JSONResponse:
+    """Ensure CORS headers are present even on unhandled 500 errors.
+
+    FastAPI's CORSMiddleware only wraps successful responses; if an exception
+    propagates before a response is built the middleware is bypassed and the
+    browser sees a CORS violation instead of the actual error.
+    """
+    origin = request.headers.get("origin", "")
+    headers = {}
+    if origin in origins or "*" in origins:
+        headers["Access-Control-Allow-Origin"] = origin
+        headers["Access-Control-Allow-Credentials"] = "true"
+    return JSONResponse(
+        status_code=500,
+        content={"detail": f"Internal server error: {type(exc).__name__}"},
+        headers=headers,
+    )
+
 
 app.include_router(auth.router, prefix="/api/auth", tags=["auth"])
 app.include_router(chat.router, prefix="/api/chat", tags=["chat"])
