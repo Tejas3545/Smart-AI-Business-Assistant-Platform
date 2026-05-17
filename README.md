@@ -21,7 +21,7 @@ Smart AI Business Assistant Platform is a compact AI operations dashboard. It co
 
 3. **Start backend** (Terminal 1):
    ```bash
-   python run_backend.py
+   python scripts/run_backend.py
    ```
    Backend runs on http://localhost:8000
 
@@ -216,7 +216,7 @@ docker-compose up --build
 ```bash
 # Make sure you're in the right directory
 cd <repo-root>
-python run_backend.py
+python scripts/run_backend.py
 ```
 
 **Database connection errors:**
@@ -251,16 +251,17 @@ See [DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md) for more troubleshooting.
 │   ├── Dockerfile              ← Docker image definition
 │   ├── requirements.txt        ← Production dependencies (pinned)
 │   ├── requirements-web.txt    ← Local dev dependencies
-│   ├── app/
-│   │   ├── main.py
-│   │   ├── core/config.py
-│   │   ├── db/
-│   │   ├── models/
-│   │   ├── schemas/
-│   │   ├── api/routes/
-│   │   ├── services/
-│   │   └── utils/
-│   └── chroma_store_v1/        ← Vector DB storage
+│   ├── scripts/
+│   │   └── generate_schema_sql.py
+│   └── app/
+│       ├── main.py
+│       ├── core/               ← config, logging, security
+│       ├── db/                 ← SQLAlchemy engine & session
+│       ├── models/             ← ORM models
+│       ├── schemas/            ← Pydantic schemas
+│       ├── api/routes/         ← API endpoints
+│       ├── services/           ← Business logic & AI
+│       └── utils/
 │
 ├── frontend/
 │   ├── index.html
@@ -268,7 +269,12 @@ See [DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md) for more troubleshooting.
 │   ├── styles.css
 │   └── assets/
 │
-├── run_backend.py              ← Local startup script
+├── docs/
+│   └── AI_Agent_Automation_Platform_Assessment_Brief.pdf
+│
+├── scripts/
+│   └── run_backend.py          ← Local startup script
+│
 ├── docker-compose.yml          ← Docker Compose config
 ├── DEPLOYMENT_GUIDE.md         ← Production deployment steps
 └── README.md                   ← This file
@@ -294,18 +300,20 @@ The full step-by-step deployment instructions are in [DEPLOYMENT_GUIDE.md](DEPLO
 
 ## Project Structure
 ```text
-backend/
-  app/
-    api/
-    core/
-    db/
-    models/
-    schemas/
-    services/
+backend/app/
+  api/routes/     ← auth, chat, docs, leads, workflows, analytics
+  core/           ← config, logging, security
+  db/             ← SQLAlchemy engine & session
+  models/         ← ORM models
+  schemas/        ← Pydantic schemas
+  services/       ← business logic, RAG, agents, workflows
+  utils/
 frontend/
   index.html
   styles.css
   app.js
+docs/             ← reference documents
+scripts/          ← local dev helpers
 ```
 
 ## Practical Notes
