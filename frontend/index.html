@@ -7,209 +7,337 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700&family=Space+Mono:wght@400;700&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Outfit:wght@500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
       rel="stylesheet"
     />
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
-    <div class="shell">
-      <aside class="sidebar">
-        <div class="brand">
-          <p class="badge">AI Agent + Automation</p>
+    <!-- AUTHENTICATION VIEW -->
+    <div id="auth-app" class="auth-wrapper active">
+      <div class="auth-container">
+        <div class="auth-brand">
           <h1>Smart AI Assistant</h1>
-          <p class="muted">Business ops cockpit for SMEs.</p>
+          <p class="muted">Business operations cockpit for SMEs.</p>
         </div>
-        <nav class="nav">
-          <button class="nav-btn active" data-nav="overview">Overview</button>
-          <button class="nav-btn" data-nav="assistant">Assistant</button>
-          <button class="nav-btn" data-nav="leads">Leads</button>
-          <button class="nav-btn" data-nav="automations">Automations</button>
-          <button class="nav-btn" data-nav="settings">Settings</button>
-        </nav>
-        <div class="sidebar-actions">
-          <button class="ghost" id="refresh-dashboard">Refresh Dashboard</button>
+        
+        <div class="auth-box">
+          <div class="auth-tabs">
+            <button class="auth-tab active" data-tab="login">Login</button>
+            <button class="auth-tab" data-tab="signup">Sign Up</button>
+          </div>
+          
+          <div class="auth-form active" id="login-form">
+            <div class="input-group">
+              <label>Email Address</label>
+              <input id="login-email" type="email" placeholder="you@company.com" aria-label="Login email" />
+            </div>
+            <div class="input-group">
+              <label>Password</label>
+              <input id="login-password" placeholder="••••••••" type="password" aria-label="Login password" />
+            </div>
+            <button class="primary full-width" id="login-btn">Sign In</button>
+          </div>
+
+          <div class="auth-form" id="signup-form">
+            <div class="input-group">
+              <label>Full Name</label>
+              <input id="signup-name" placeholder="John Doe" aria-label="Full name" />
+            </div>
+            <div class="input-group">
+              <label>Email Address</label>
+              <input id="signup-email" type="email" placeholder="you@company.com" aria-label="Email" />
+            </div>
+            <div class="input-group">
+              <label>Password</label>
+              <input id="signup-password" placeholder="Create a secure password" type="password" aria-label="Password" />
+            </div>
+            <button class="primary full-width" id="signup-btn">Create Account</button>
+          </div>
+          
+          <div class="auth-status-container">
+            <p class="status-msg" id="auth-status"></p>
+          </div>
         </div>
-      </aside>
+      </div>
+      <div class="auth-visual">
+        <div class="abstract-shape shape-1"></div>
+        <div class="abstract-shape shape-2"></div>
+        <div class="abstract-shape shape-3"></div>
+      </div>
+    </div>
 
-      <main class="content">
-        <header class="topbar">
-          <div>
-            <h2 id="view-title">Overview</h2>
-            <p class="muted" id="view-subtitle">Live system pulse and business activity.</p>
+    <!-- MAIN DASHBOARD VIEW -->
+    <div id="dashboard-app" class="dashboard-wrapper">
+      <div class="shell">
+        <aside class="sidebar">
+          <div class="brand">
+            <div class="brand-header">
+              <div class="logo-icon small"></div>
+              <h2>Smart AI</h2>
+            </div>
+            <p class="badge">Enterprise Ready</p>
           </div>
-          <button class="primary" id="toggle-config">API Settings</button>
-        </header>
-
-        <section class="panel config" id="config-panel">
-          <div>
-            <h3>API Configuration</h3>
-            <p class="muted">Point the dashboard to a running backend instance.</p>
-          </div>
-          <div class="row">
-            <input id="api-base" placeholder="http://localhost:8000" aria-label="API base URL" />
-            <button class="ghost" id="save-api">Save</button>
-          </div>
-        </section>
-
-        <section class="view active" data-view="overview">
-          <div class="kpi-grid">
-            <div class="card kpi">
-              <h4>Conversations</h4>
-              <p id="kpi-conversations">0</p>
-            </div>
-            <div class="card kpi">
-              <h4>Messages</h4>
-              <p id="kpi-messages">0</p>
-            </div>
-            <div class="card kpi">
-              <h4>Leads</h4>
-              <p id="kpi-leads">0</p>
-            </div>
-            <div class="card kpi">
-              <h4>Hot Leads</h4>
-              <p id="kpi-hot">0</p>
-            </div>
-            <div class="card kpi">
-              <h4>Workflows</h4>
-              <p id="kpi-workflows">0</p>
-            </div>
-            <div class="card kpi">
-              <h4>Documents</h4>
-              <p id="kpi-docs">0</p>
-            </div>
-            <div class="card kpi">
-              <h4>AI Tokens</h4>
-              <p id="kpi-ai-tokens">0</p>
-            </div>
-          </div>
-
-          <div class="grid two">
-            <div class="card">
-              <h3>Conversation Logs</h3>
-              <div id="conversation-list" class="list"></div>
-            </div>
-            <div class="card">
-              <h3>Workflow Logs</h3>
-              <div id="workflow-list" class="list"></div>
+          
+          <nav class="nav">
+            <button class="nav-btn active" data-nav="overview">
+              <svg xmlns="http://www.w3.org/-2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9"></rect><rect x="14" y="3" width="7" height="5"></rect><rect x="14" y="12" width="7" height="9"></rect><rect x="3" y="16" width="7" height="5"></rect></svg>
+              Overview
+            </button>
+            <button class="nav-btn" data-nav="assistant">
+              <svg xmlns="http://www.w3.org/-2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+              Assistant
+            </button>
+            <button class="nav-btn" data-nav="leads">
+              <svg xmlns="http://www.w3.org/-2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+              Leads
+            </button>
+            <button class="nav-btn" data-nav="automations">
+              <svg xmlns="http://www.w3.org/-2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
+              Automations
+            </button>
+          </nav>
+          
+          <div class="sidebar-actions">
+            <button class="ghost action-btn" id="refresh-dashboard">
+              <svg xmlns="http://www.w3.org/-2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
+              Sync Data
+            </button>
+            
+            <div class="user-profile">
+              <div class="avatar"></div>
+              <div class="user-info">
+                <span class="user-name">Admin User</span>
+                <span class="user-role">Workspace Owner</span>
+              </div>
+              <button class="icon-btn" id="logout-btn" title="Logout" aria-label="Logout">
+                <svg xmlns="http://www.w3.org/-2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+              </button>
             </div>
           </div>
+        </aside>
 
-          <div class="grid two">
-            <div class="card">
-              <h3>Activity Logs</h3>
-              <div id="audit-list" class="list"></div>
+        <main class="content">
+          <header class="topbar">
+            <div class="page-header">
+              <h2 id="view-title">Overview</h2>
+              <p class="muted" id="view-subtitle">Live system pulse and business activity.</p>
             </div>
-            <div class="card">
-              <h3>Document Library</h3>
-              <div id="doc-list" class="list"></div>
-            </div>
-          </div>
-        </section>
+          </header>
 
-        <section class="view" data-view="assistant">
-          <div class="grid two">
-            <div class="card">
-              <h3>AI Assistant</h3>
-              <div class="chat" id="chat-log"></div>
-              <div class="row">
-                <input
-                  id="chat-input"
-                  placeholder="Ask about pricing, onboarding, or customer FAQs"
-                  aria-label="Chat message"
-                />
-                <button class="primary" id="send-chat">Send</button>
+          <section class="view active" data-view="overview">
+            <div class="kpi-grid">
+              <div class="card kpi">
+                <div class="kpi-icon conversations"></div>
+                <div class="kpi-content">
+                  <h4>Conversations</h4>
+                  <p id="kpi-conversations">0</p>
+                </div>
+              </div>
+              <div class="card kpi">
+                <div class="kpi-icon messages"></div>
+                <div class="kpi-content">
+                  <h4>Messages</h4>
+                  <p id="kpi-messages">0</p>
+                </div>
+              </div>
+              <div class="card kpi">
+                <div class="kpi-icon leads"></div>
+                <div class="kpi-content">
+                  <h4>Leads</h4>
+                  <p id="kpi-leads">0</p>
+                </div>
+              </div>
+              <div class="card kpi">
+                <div class="kpi-icon hot"></div>
+                <div class="kpi-content">
+                  <h4>Hot Leads</h4>
+                  <p id="kpi-hot">0</p>
+                </div>
+              </div>
+              <div class="card kpi">
+                <div class="kpi-icon workflows"></div>
+                <div class="kpi-content">
+                  <h4>Workflows</h4>
+                  <p id="kpi-workflows">0</p>
+                </div>
+              </div>
+              <div class="card kpi">
+                <div class="kpi-icon docs"></div>
+                <div class="kpi-content">
+                  <h4>Documents</h4>
+                  <p id="kpi-docs">0</p>
+                </div>
               </div>
             </div>
-            <div class="card">
-              <h3>Document Upload</h3>
-              <p class="muted">Upload business documents to power RAG responses.</p>
-              <div class="row">
-                <input id="doc-file" type="file" aria-label="Upload document" />
-                <button class="ghost" id="upload-doc">Upload</button>
-              </div>
-              <p class="muted" id="doc-status"></p>
-              <div class="divider"></div>
-              <h4>Managed Documents</h4>
-              <div id="doc-list-inline" class="list"></div>
-            </div>
-          </div>
-        </section>
 
-        <section class="view" data-view="leads">
-          <div class="grid two">
-            <div class="card">
-              <h3>Capture Lead</h3>
-              <div class="form">
-                <input id="lead-name" placeholder="Lead name" aria-label="Lead name" />
-                <input id="lead-email" placeholder="Email" aria-label="Lead email" />
-                <input id="lead-phone" placeholder="Phone" aria-label="Lead phone" />
-                <input id="lead-company" placeholder="Company" aria-label="Lead company" />
-                <textarea id="lead-interest" placeholder="Interest or request" aria-label="Lead interest"></textarea>
-                <button class="ghost" id="create-lead">Save Lead</button>
-                <p class="muted" id="lead-status"></p>
+            <div class="grid two">
+              <div class="card">
+                <div class="card-header">
+                  <h3>Activity Logs</h3>
+                  <span class="badge neutral">Live</span>
+                </div>
+                <div id="audit-list" class="list"></div>
+              </div>
+              <div class="card">
+                <div class="card-header">
+                  <h3>Workflow Executions</h3>
+                </div>
+                <div id="workflow-list" class="list"></div>
               </div>
             </div>
-            <div class="card">
-              <h3>Recent Leads</h3>
-              <div id="lead-list" class="list"></div>
-            </div>
-          </div>
-        </section>
-
-        <section class="view" data-view="automations">
-          <div class="grid two">
-            <div class="card">
-              <h3>Workflow Automations</h3>
-              <div class="form">
-                <select id="workflow-type" aria-label="Workflow type">
-                  <option value="email_summary">Email Summary</option>
-                  <option value="crm_sync">CRM Sync</option>
-                  <option value="calendar_booking">Calendar Booking</option>
-                </select>
-                <textarea
-                  id="workflow-payload"
-                  placeholder='{"subject": "Demo request"}'
-                  aria-label="Workflow payload"
-                ></textarea>
-                <button class="ghost" id="run-workflow">Run Workflow</button>
-                <p class="muted" id="workflow-status"></p>
+            
+            <div class="grid two">
+              <div class="card">
+                <div class="card-header">
+                  <h3>Recent Conversations</h3>
+                </div>
+                <div id="conversation-list" class="list"></div>
+              </div>
+              <div class="card">
+                <div class="card-header">
+                  <h3>Document Library</h3>
+                </div>
+                <div id="doc-list" class="list"></div>
               </div>
             </div>
-            <div class="card">
-              <h3>Workflow Logs</h3>
-              <div id="workflow-list" class="list"></div>
-            </div>
-          </div>
-        </section>
+          </section>
 
-        <section class="view" data-view="settings">
-          <div class="grid two">
-            <div class="card">
-              <h3>Authentication</h3>
-              <div class="auth">
-                <input id="signup-name" placeholder="Full name" aria-label="Full name" />
-                <input id="signup-email" placeholder="Email" aria-label="Email" />
-                <input id="signup-password" placeholder="Password" type="password" aria-label="Password" />
-                <button class="primary" id="signup-btn">Create Account</button>
+          <section class="view" data-view="assistant">
+            <div class="grid two">
+              <div class="card chat-card">
+                <div class="card-header">
+                  <h3>AI Assistant</h3>
+                  <span class="badge primary">Online</span>
+                </div>
+                <div class="chat" id="chat-log">
+                  <div class="bubble assistant">Hello! I'm your AI business assistant. How can I help you today?</div>
+                </div>
+                <div class="chat-input-wrapper">
+                  <input
+                    id="chat-input"
+                    placeholder="Ask about pricing, onboarding, or analyze a lead..."
+                    aria-label="Chat message"
+                  />
+                  <button class="primary icon-only" id="send-chat" aria-label="Send">
+                    <svg xmlns="http://www.w3.org/-2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+                  </button>
+                </div>
+              </div>
+              <div class="card layout-stack">
+                <div class="card-header">
+                  <h3>Knowledge Base</h3>
+                </div>
+                <p class="muted">Upload business documents, FAQs, and playbooks to power context-aware AI responses.</p>
+                
+                <div class="upload-zone">
+                  <svg xmlns="http://www.w3.org/-2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="upload-icon"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                  <p>Click or drag file to upload</p>
+                  <input id="doc-file" type="file" aria-label="Upload document" class="file-input-hidden" />
+                  <button class="secondary btn-sm" id="upload-doc">Browse Files</button>
+                </div>
+                <p class="status-msg" id="doc-status"></p>
+                
                 <div class="divider"></div>
-                <input id="login-email" placeholder="Email" aria-label="Login email" />
-                <input id="login-password" placeholder="Password" type="password" aria-label="Login password" />
-                <button class="ghost" id="login-btn">Login</button>
-                <p class="muted" id="auth-status">Not authenticated</p>
+                
+                <h4>Indexed Documents</h4>
+                <div id="doc-list-inline" class="list compact"></div>
               </div>
             </div>
-            <div class="card">
-              <h3>System Notes</h3>
-              <ul class="notes">
-                <li>Uploads are embedded locally using sentence transformers.</li>
-                <li>Responses are grounded in your documents with a safe fallback.</li>
-                <li>Change API base URL to connect to another deployment.</li>
-              </ul>
+          </section>
+
+          <section class="view" data-view="leads">
+            <div class="grid two">
+              <div class="card layout-stack">
+                <div class="card-header">
+                  <h3>Capture Lead</h3>
+                </div>
+                <div class="form">
+                  <div class="input-group">
+                    <label>Lead Name</label>
+                    <input id="lead-name" placeholder="E.g. Sarah Connor" aria-label="Lead name" />
+                  </div>
+                  <div class="form-row">
+                    <div class="input-group">
+                      <label>Email</label>
+                      <input id="lead-email" type="email" placeholder="sarah@example.com" aria-label="Lead email" />
+                    </div>
+                    <div class="input-group">
+                      <label>Phone</label>
+                      <input id="lead-phone" placeholder="+1 (555) 000-0000" aria-label="Lead phone" />
+                    </div>
+                  </div>
+                  <div class="input-group">
+                    <label>Company</label>
+                    <input id="lead-company" placeholder="Cyberdyne Systems" aria-label="Lead company" />
+                  </div>
+                  <div class="input-group">
+                    <label>Interest / Notes</label>
+                    <textarea id="lead-interest" placeholder="Interested in enterprise automation..." aria-label="Lead interest"></textarea>
+                  </div>
+                  <div class="action-row">
+                    <button class="primary" id="create-lead">Save & Score Lead</button>
+                    <span class="status-msg" id="lead-status"></span>
+                  </div>
+                </div>
+              </div>
+              <div class="card">
+                <div class="card-header">
+                  <h3>Lead Pipeline</h3>
+                  <span class="badge warning">Scoring Active</span>
+                </div>
+                <div id="lead-list" class="list"></div>
+              </div>
             </div>
-          </div>
-        </section>
-      </main>
+          </section>
+
+          <section class="view" data-view="automations">
+            <div class="grid two">
+              <div class="card layout-stack">
+                <div class="card-header">
+                  <h3>Trigger Workflow</h3>
+                </div>
+                <div class="form">
+                  <div class="input-group">
+                    <label>Workflow Blueprint</label>
+                    <div class="select-wrapper">
+                      <select id="workflow-type" aria-label="Workflow type">
+                        <option value="email_summary">Executive Email Summary</option>
+                        <option value="crm_sync">Salesforce/HubSpot Sync</option>
+                        <option value="calendar_booking">Client Calendar Booking</option>
+                        <option value="lead_enrichment">Lead Data Enrichment</option>
+                      </select>
+                      <svg class="select-icon" xmlns="http://www.w3.org/-2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                    </div>
+                  </div>
+                  <div class="input-group">
+                    <label>JSON Payload</label>
+                    <textarea
+                      id="workflow-payload"
+                      class="code-input"
+                      placeholder='{
+  "subject": "Demo request",
+  "priority": "high"
+}'
+                      aria-label="Workflow payload"
+                    ></textarea>
+                  </div>
+                  <div class="action-row">
+                    <button class="primary" id="run-workflow">Execute Workflow</button>
+                    <span class="status-msg" id="workflow-status"></span>
+                  </div>
+                </div>
+              </div>
+              <div class="card">
+                <div class="card-header">
+                  <h3>Execution History</h3>
+                </div>
+                <div id="workflow-list" class="list"></div>
+              </div>
+            </div>
+          </section>
+        </main>
+      </div>
     </div>
 
     <script src="app.js"></script>
