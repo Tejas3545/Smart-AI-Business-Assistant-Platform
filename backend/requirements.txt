@@ -17,3 +17,5 @@ chromadb==0.5.23
 numpy==1.26.4
 
 # RAG dependencies are required in production for upload+index flows.
+httpx==0.28.1
+tenacity==9.1.4
