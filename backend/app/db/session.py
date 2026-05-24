@@ -9,10 +9,9 @@ engine = create_async_engine(
     settings.database_url,
     echo=False,
     poolclass=NullPool,
+    # Both dialect-level and driver-level disables for PgBouncer / Supabase compatibility.
+    prepared_statement_cache_size=0,
     connect_args={
-        # Required for PgBouncer transaction/statement pooling (Supabase pooler).
-        # Disables asyncpg-level prepared statement caches that can collide
-        # across pooled backend connections.
         "statement_cache_size": 0,
         "prepared_statement_cache_size": 0,
     },
