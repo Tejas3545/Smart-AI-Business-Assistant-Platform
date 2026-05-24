@@ -96,6 +96,10 @@
               <svg xmlns="http://www.w3.org/-2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
               Automations
             </button>
+            <button class="nav-btn" data-nav="admin">
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h.01A1.65 1.65 0 0 0 9 3.09V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51h.01a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v.01A1.65 1.65 0 0 0 20.91 11H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+              Admin
+            </button>
           </nav>
           
           <div class="sidebar-actions">
@@ -158,8 +162,22 @@
               <div class="card kpi">
                 <div class="kpi-icon workflows"></div>
                 <div class="kpi-content">
+                  <h4>Conversion Rate</h4>
+                  <p id="kpi-conversion">0%</p>
+                </div>
+              </div>
+              <div class="card kpi">
+                <div class="kpi-icon workflows"></div>
+                <div class="kpi-content">
                   <h4>Workflows</h4>
                   <p id="kpi-workflows">0</p>
+                </div>
+              </div>
+              <div class="card kpi">
+                <div class="kpi-icon messages"></div>
+                <div class="kpi-content">
+                  <h4>Avg Response (s)</h4>
+                  <p id="kpi-response">0</p>
                 </div>
               </div>
               <div class="card kpi">
@@ -304,7 +322,49 @@
             <div class="grid two">
               <div class="card layout-stack">
                 <div class="card-header">
-                  <h3>Trigger Workflow</h3>
+                  <h3>Workflow Builder</h3>
+                </div>
+                <div class="form">
+                  <div class="input-group">
+                    <label>Workflow Name</label>
+                    <input id="new-workflow-name" placeholder="E.g. New Lead Sync" aria-label="Workflow name" />
+                  </div>
+                  <div class="input-group">
+                    <label>Trigger Type</label>
+                    <div class="select-wrapper">
+                      <select id="new-workflow-trigger" aria-label="Trigger type">
+                        <option value="webhook_received">Webhook Received</option>
+                        <option value="lead_created">New Lead Captured</option>
+                        <option value="email_received">Email Received</option>
+                        <option value="schedule">Scheduled Time</option>
+                      </select>
+                      <svg class="select-icon" xmlns="http://www.w3.org/-2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                    </div>
+                  </div>
+                  
+                  <div class="input-group">
+                    <label>Action Logic (JSON Nodes)</label>
+                    <textarea
+                      id="new-workflow-nodes"
+                      class="code-input"
+                      placeholder='[
+  { "type": "condition", "field": "status", "operator": "==", "value": "hot" },
+  { "type": "action", "provider": "slack", "config": { "message": "New hot lead captured" } },
+  { "type": "follow_up", "provider": "gmail", "config": { "to_email": "admin@example.com", "subject": "Lead follow-up" } }
+]'
+                      aria-label="Workflow logic"
+                    ></textarea>
+                  </div>
+                  <div class="action-row">
+                    <button class="primary" id="create-workflow">Save Workflow</button>
+                    <span class="status-msg" id="create-workflow-status"></span>
+                  </div>
+                </div>
+              </div>
+              
+              <div class="card layout-stack">
+                <div class="card-header">
+                  <h3>Trigger Manual Workflow</h3>
                 </div>
                 <div class="form">
                   <div class="input-group">
@@ -337,11 +397,52 @@
                   </div>
                 </div>
               </div>
+            </div>
+            <div class="grid one" style="margin-top: 2rem;">
               <div class="card">
                 <div class="card-header">
                   <h3>Execution History</h3>
                 </div>
                 <div id="workflow-list" class="list"></div>
+              </div>
+            </div>
+          </section>
+
+          <section class="view" data-view="admin">
+            <div class="grid two">
+              <div class="card">
+                <div class="card-header">
+                  <h3>Client Workspaces</h3>
+                </div>
+                <div id="admin-workspaces" class="list"></div>
+              </div>
+              <div class="card">
+                <div class="card-header">
+                  <h3>Workspace Users</h3>
+                </div>
+                <div id="admin-users" class="list"></div>
+              </div>
+            </div>
+            <div class="grid two" style="margin-top: 2rem;">
+              <div class="card">
+                <div class="card-header">
+                  <h3>Automation Logs</h3>
+                </div>
+                <div id="admin-automation-logs" class="list"></div>
+              </div>
+              <div class="card">
+                <div class="card-header">
+                  <h3>Trigger History</h3>
+                </div>
+                <div id="admin-audit-logs" class="list"></div>
+              </div>
+            </div>
+            <div class="grid one" style="margin-top: 2rem;">
+              <div class="card">
+                <div class="card-header">
+                  <h3>Integration Configurations</h3>
+                </div>
+                <div id="admin-integrations" class="list"></div>
               </div>
             </div>
           </section>

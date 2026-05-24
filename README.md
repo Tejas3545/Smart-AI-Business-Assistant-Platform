@@ -2,6 +2,17 @@
 
 Smart AI Business Assistant Platform is a compact AI operations dashboard. It combines grounded chat, document intelligence, lead capture, workflow automation, and analytics in one practical system.
 
+## New Features for Automation Platform
+
+This project implements all mandatory requirements for the advanced technical assessment:
+1. **Client Workspace Support:** Multi-tenant workspace data model in the DB, mapped to Users `(users.workspace_id = workspaces.id)`. Settings and workflows are tracked individually.
+2. **Integration Layer:** `Integration` DB model and endpoints supporting configurations for Webhooks, Slack, Gmail, CRM, etc.
+3. **Workflow Builder:** A detailed `Workflow` model holding schema rules (`trigger_type`, `nodes` configuration) per workspace.
+4. **Automation Engine:** An asynchronous task queue engine (`AutomationTask`) with background workers processing tasks, auto-retrying on failures, tracking step transitions. 
+5. **Analytics Dashboard:** `AnalyticsSummary` tracking total lead counts, workflow runs, exceptions/failures, conversion counts, and response tokens.
+6. **Admin Panel:** Global configuration, user lists, workspace lists, and automation execution audit trails via `/api/admin/`.
+7. **Reliability:** Background retry logic, automated schema migration on boot, error states safely captured instead of dropped.
+
 ## Quick Start
 
 ### Local Development (5 minutes)
@@ -53,11 +64,11 @@ See [DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md) for complete step-by-step instruc
 - **Authentication**: JWT-based login/signup
 - **AI Chat**: Grounded conversations with document context (RAG)
 - **Document Upload**: PDF text extraction and semantic search
-- **Lead Management**: Capture and track leads with scoring
-- **Workflows**: Automated email summaries and CRM sync
-- **Analytics**: Real-time dashboard with conversation/lead/workflow metrics
-- **Audit Logs**: Full activity history for compliance
-
+- **Lead Management**: Capture and track leads with scoring and human handoff logic
+- **Workflow Builder**: Connect triggers, conditions, actions, and follow-ups.
+- **Automation Engine**: Queue-style execution with retries, exponential backoff, and failure handling.
+- **Integration Layer**: Connect to external services including Webhooks, Slack, Gmail (SMTP), and HubSpot CRM.
+- **Analytics & Admin**: Real-time dashboard with lead conversion rate, response time, workflow failures, audit logs, and trigger history.
 ## Architecture
 
 ```
@@ -204,6 +215,11 @@ docker-compose up --build
 
 ### Analytics
 - `GET /api/analytics/summary` - Dashboard metrics
+- `GET /api/admin/users` - Admin: list users
+- `GET /api/admin/workspaces` - Admin: list workspaces
+- `GET /api/admin/automation-logs` - Admin: workflow execution logs
+- `GET /api/admin/audit-logs` - Admin: trigger history and audit trail
+- `GET /api/admin/integrations` - Admin: integration configurations
 
 ### Health
 - `GET /api/health` - Service health check
@@ -321,6 +337,7 @@ scripts/          ← local dev helpers
 - For production, use a hosted PostgreSQL database and persistent storage for durable data.
 - The frontend can be pointed to any backend URL from its built-in API settings.
 - If Ollama is unavailable, the assistant falls back safely.
+- HubSpot CRM sync expects an Integration with `provider=crm_hubspot` and `credentials.api_key` set to a HubSpot private app token.
 
 ## License
 MIT

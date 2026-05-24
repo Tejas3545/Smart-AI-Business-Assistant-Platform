@@ -6,6 +6,9 @@ from app.models.message import Message
 from app.models.user import User
 from app.models.user_memory import UserMemory
 from app.models.workflow import WorkflowRun
+from app.models.workspace import Workspace
+from app.models.integration import Integration
+from app.models.automation import Workflow, AutomationTask
 
 __all__ = [
     "AuditLog",
@@ -16,4 +19,8 @@ __all__ = [
     "User",
     "UserMemory",
     "WorkflowRun",
+    "Workspace",
+    "Integration",
+    "Workflow",
+    "AutomationTask",
 ]

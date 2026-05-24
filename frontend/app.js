@@ -4,6 +4,7 @@ const state = {
   conversationId: null,
   conversationsCache: [],
   conversationsFetchedAt: 0,
+  userRole: null,
 };
 
 const elements = {
@@ -43,6 +44,12 @@ const elements = {
   leadStatus: document.getElementById("lead-status"),
   leadList: document.getElementById("lead-list"),
   
+  newWfName: document.getElementById("new-workflow-name"),
+  newWfTrigger: document.getElementById("new-workflow-trigger"),
+  newWfNodes: document.getElementById("new-workflow-nodes"),
+  createWfBtn: document.getElementById("create-workflow"),
+  createWfStatus: document.getElementById("create-workflow-status"),
+
   workflowType: document.getElementById("workflow-type"),
   workflowPayload: document.getElementById("workflow-payload"),
   runWorkflow: document.getElementById("run-workflow"),
@@ -58,9 +65,18 @@ const elements = {
   kpiMessages: document.getElementById("kpi-messages"),
   kpiLeads: document.getElementById("kpi-leads"),
   kpiHot: document.getElementById("kpi-hot"),
+  kpiConversion: document.getElementById("kpi-conversion"),
   kpiWorkflows: document.getElementById("kpi-workflows"),
+  kpiResponse: document.getElementById("kpi-response"),
   kpiDocs: document.getElementById("kpi-docs"),
   kpiAiTokens: document.getElementById("kpi-ai-tokens"),
+
+  adminUsers: document.getElementById("admin-users"),
+  adminWorkspaces: document.getElementById("admin-workspaces"),
+  adminAutomationLogs: document.getElementById("admin-automation-logs"),
+  adminAuditLogs: document.getElementById("admin-audit-logs"),
+  adminIntegrations: document.getElementById("admin-integrations"),
+  adminNavButton: document.querySelector('[data-nav="admin"]'),
   
   viewTitle: document.getElementById("view-title"),
   viewSubtitle: document.getElementById("view-subtitle"),
@@ -84,6 +100,10 @@ const viewMeta = {
   automations: {
     title: "Automations",
     subtitle: "Trigger repeatable workflows in one click.",
+  },
+  admin: {
+    title: "Admin",
+    subtitle: "Client settings, workflows, and operational visibility.",
   },
 };
 
@@ -110,9 +130,13 @@ const fetchUserProfile = async () => {
   });
   if (response.ok) {
     const user = await response.json();
+    state.userRole = user.role || null;
     const userNameEl = document.querySelector(".user-name");
     if (userNameEl) {
       userNameEl.textContent = user.full_name || user.email;
+    }
+    if (elements.adminNavButton) {
+      elements.adminNavButton.style.display = state.userRole === "admin" ? "" : "none";
     }
   } else {
     logout();
@@ -172,7 +196,13 @@ const fetchSummary = async () => {
   elements.kpiMessages.textContent = data.total_messages;
   elements.kpiLeads.textContent = data.total_leads;
   elements.kpiHot.textContent = data.hot_leads;
+  if (elements.kpiConversion) {
+    elements.kpiConversion.textContent = `${data.conversion_rate || 0}%`;
+  }
   elements.kpiWorkflows.textContent = data.workflow_runs;
+  if (elements.kpiResponse) {
+    elements.kpiResponse.textContent = data.avg_response_seconds || 0;
+  }
   elements.kpiDocs.textContent = data.documents_uploaded;
   if (elements.kpiAiTokens) {
     elements.kpiAiTokens.textContent = data.total_ai_tokens || 0;
@@ -201,6 +231,96 @@ const fetchAuditLogs = async () => {
          </div>`
     )
     .join("");
+};
+
+const fetchAdminData = async () => {
+  if (state.userRole !== "admin") return;
+  const [usersRes, workspacesRes, logsRes, auditRes, integrationsRes] = await Promise.all([
+    fetch(`${state.apiBase}/api/admin/users`, { headers: headers() }),
+    fetch(`${state.apiBase}/api/admin/workspaces`, { headers: headers() }),
+    fetch(`${state.apiBase}/api/admin/automation-logs`, { headers: headers() }),
+    fetch(`${state.apiBase}/api/admin/audit-logs`, { headers: headers() }),
+    fetch(`${state.apiBase}/api/admin/integrations`, { headers: headers() }),
+  ]);
+  if ([usersRes, workspacesRes, logsRes, auditRes, integrationsRes].some((res) => res.status === 401)) {
+    logout();
+    return;
+  }
+  if (usersRes.ok) {
+    const users = await usersRes.json();
+    elements.adminUsers.innerHTML = users.length
+      ? users
+          .map(
+            (user) => `<div class="item item-row">
+              <div class="lead-info">
+                <strong>${user.full_name || user.email}</strong>
+                <span class="muted">${user.email}</span>
+              </div>
+              <span class="badge neutral">${user.role}</span>
+            </div>`
+          )
+          .join("")
+      : `<div class="item empty-state">No users found.</div>`;
+  }
+  if (workspacesRes.ok) {
+    const workspaces = await workspacesRes.json();
+    elements.adminWorkspaces.innerHTML = workspaces.length
+      ? workspaces
+          .map(
+            (workspace) => `<div class="item item-row">
+              <div class="lead-info">
+                <strong>${workspace.name}</strong>
+                <span class="muted">Workspace ID: ${workspace.id}</span>
+              </div>
+              <span class="badge ${workspace.is_active ? "success" : "neutral"}">${workspace.is_active ? "Active" : "Paused"}</span>
+            </div>`
+          )
+          .join("")
+      : `<div class="item empty-state">No workspaces found.</div>`;
+  }
+  if (logsRes.ok) {
+    const logs = await logsRes.json();
+    elements.adminAutomationLogs.innerHTML = logs.length
+      ? logs
+          .map(
+            (log) => `<div class="item">
+              <strong>${log.status}</strong>
+              <span class="muted">Workflow ID: ${log.workflow_id || "n/a"} · Retries: ${log.retry_count}</span>
+            </div>`
+          )
+          .join("")
+      : `<div class="item empty-state">No automation logs.</div>`;
+  }
+  if (auditRes.ok) {
+    const audits = await auditRes.json();
+    elements.adminAuditLogs.innerHTML = audits.length
+      ? audits
+          .slice(0, 20)
+          .map(
+            (log) => `<div class="item">
+              <strong>${log.event_type}</strong>
+              <span class="muted">${log.detail || ""}</span>
+            </div>`
+          )
+          .join("")
+      : `<div class="item empty-state">No audit activity yet.</div>`;
+  }
+  if (integrationsRes.ok) {
+    const integrations = await integrationsRes.json();
+    elements.adminIntegrations.innerHTML = integrations.length
+      ? integrations
+          .map(
+            (integration) => `<div class="item item-row">
+              <div class="lead-info">
+                <strong>${integration.provider}</strong>
+                <span class="muted">Workspace ID: ${integration.workspace_id}</span>
+              </div>
+              <span class="badge ${integration.status === "active" ? "success" : "neutral"}">${integration.status}</span>
+            </div>`
+          )
+          .join("")
+      : `<div class="item empty-state">No integrations configured.</div>`;
+  }
 };
 
 const renderDocuments = (documents) => {
@@ -273,7 +393,7 @@ const fetchWorkflows = async () => {
   const response = await fetch(`${state.apiBase}/api/workflows/`, { headers: headers() });
   if (!response.ok) return;
   const data = await response.json();
-  elements.workflowList.innerHTML = data
+  elements.workflowList.innerHTML = data.length ? data
     .map(
       (run) =>
         `<div class="item workflow-item">
@@ -281,7 +401,45 @@ const fetchWorkflows = async () => {
            <span class="muted">${run.status} · ${run.output_summary || ""}</span>
          </div>`
     )
-    .join("");
+    .join("") : `<div class="item empty-state">No workflows executed yet.</div>`;
+};
+
+const createWorkflowDef = async () => {
+  if (!elements.newWfName.value || !elements.newWfNodes.value) {
+    showMessage(elements.createWfStatus, "Please complete fields.", true);
+    return;
+  }
+  let parsedNodes = [];
+  try {
+    parsedNodes = JSON.parse(elements.newWfNodes.value);
+  } catch (e) {
+    showMessage(elements.createWfStatus, "Invalid JSON in logic nodes.", true);
+    return;
+  }
+
+  const payload = {
+    name: elements.newWfName.value,
+    trigger_type: elements.newWfTrigger.value,
+    nodes: parsedNodes
+  };
+
+  elements.createWfBtn.textContent = "Saving...";
+  const res = await fetch(`${state.apiBase}/api/workflows/definitions`, {
+    method: "POST",
+    headers: headers(),
+    body: JSON.stringify(payload)
+  });
+
+  elements.createWfBtn.textContent = "Save Workflow";
+
+  if (res.ok) {
+    showMessage(elements.createWfStatus, "Workflow Saved!");
+    elements.newWfName.value = "";
+    elements.newWfNodes.value = "";
+  } else {
+    const detail = await readErrorMessage(res);
+    showMessage(elements.createWfStatus, detail || "Failed to save", true);
+  }
 };
 
 const fetchConversations = async (force = false) => {
@@ -389,6 +547,7 @@ const refreshDashboard = async () => {
     fetchAuditLogs(),
     fetchDocuments(),
   ]);
+  await fetchAdminData();
 };
 
 // --- AUTH ACTIONS ---
@@ -451,7 +610,11 @@ const login = async () => {
 
 const logout = () => {
   state.token = null;
+  state.userRole = null;
   localStorage.removeItem("token");
+  if (elements.adminNavButton) {
+    elements.adminNavButton.style.display = "none";
+  }
   updateAuthStatus();
 };
 
@@ -613,6 +776,10 @@ const runWorkflow = async () => {
 };
 
 const showView = (viewName) => {
+  if (viewName === "admin" && state.userRole !== "admin") {
+    showView("overview");
+    return;
+  }
   elements.views.forEach((view) => {
     view.classList.toggle("active", view.dataset.view === viewName);
   });
@@ -626,6 +793,9 @@ const showView = (viewName) => {
   }
   if (viewName === "assistant") {
     refreshChatHistory();
+  }
+  if (viewName === "admin") {
+    fetchAdminData();
   }
 };
 
@@ -665,6 +835,7 @@ const init = () => {
   
   elements.createLead.addEventListener("click", createLead);
   elements.runWorkflow.addEventListener("click", runWorkflow);
+  elements.createWfBtn.addEventListener("click", createWorkflowDef);
   elements.newChat.addEventListener("click", startNewChat);
   elements.deleteChat.addEventListener("click", deleteCurrentChat);
   elements.deleteAllChats.addEventListener("click", deleteAllChats);

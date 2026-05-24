@@ -13,7 +13,7 @@ async def summary(
     db: AsyncSession = Depends(get_db),
     user=Depends(get_current_user),
 ) -> AnalyticsSummary:
-    data = await get_summary(db)
+    data = await get_summary(db, user)
     return AnalyticsSummary(**data)
 
 
@@ -22,5 +22,5 @@ async def audit_logs(
     db: AsyncSession = Depends(get_db),
     user=Depends(get_current_user),
 ) -> list[AuditLogOut]:
-    logs = await get_recent_audit_logs(db)
+    logs = await get_recent_audit_logs(db, user)
     return logs

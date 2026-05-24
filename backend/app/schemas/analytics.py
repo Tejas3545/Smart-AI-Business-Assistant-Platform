@@ -8,8 +8,13 @@ class AnalyticsSummary(BaseModel):
     total_messages: int
     total_leads: int
     hot_leads: int
+    warm_leads: int
+    cold_leads: int
     workflow_runs: int
     documents_uploaded: int
+    workflow_failures: int = 0
+    conversion_rate: float
+    avg_response_seconds: float
     total_user_tokens: int
     total_ai_tokens: int
 

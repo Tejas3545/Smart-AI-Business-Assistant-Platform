@@ -1,0 +1,313 @@
+<!-- 
+  OPTIMIZATION NOTES:
+  1. Load performance-optimizer.js BEFORE app.js
+  2. Lazy load views on tab click
+  3. Cache API responses
+  4. Debounce search/filter inputs
+  5. Load components asynchronously
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Smart AI Assistant</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div id="auth-app" class="app-container active">
+    <!-- Authentication Section -->
+    <div class="auth-center">
+      <div class="auth-container">
+        <div class="auth-header">
+          <h1>Smart AI Assistant</h1>
+          <p>Business operations cockpit for SMEs.</p>
+        </div>
+
+        <div class="auth-tabs">
+          <button class="auth-tab active" data-tab="login">Login</button>
+          <button class="auth-tab" data-tab="signup">Sign Up</button>
+        </div>
+
+        <!-- Login Form -->
+        <form class="auth-form active" id="login-form" data-form="login">
+          <h2>Login</h2>
+          <input
+            type="email"
+            id="login-email"
+            placeholder="Email Address"
+            required
+          />
+          <input
+            type="password"
+            id="login-password"
+            placeholder="Password"
+            required
+          />
+          <button type="submit" id="login-btn" class="btn-primary">
+            Login
+          </button>
+          <div id="auth-status" class="status-msg"></div>
+        </form>
+
+        <!-- Sign Up Form -->
+        <form class="auth-form" id="signup-form" data-form="signup">
+          <h2>Sign Up</h2>
+          <input
+            type="text"
+            id="signup-name"
+            placeholder="Full Name"
+            required
+          />
+          <input
+            type="email"
+            id="signup-email"
+            placeholder="Email Address"
+            required
+          />
+          <input
+            type="password"
+            id="signup-password"
+            placeholder="Password"
+            required
+          />
+          <button type="submit" id="signup-btn" class="btn-primary">
+            Creating Account...
+          </button>
+          <div id="auth-status" class="status-msg"></div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div id="dashboard-app" class="app-container">
+    <!-- Navigation -->
+    <nav class="navbar">
+      <div class="nav-left">
+        <h2 class="app-title">Smart AI Assistant</h2>
+      </div>
+      <div class="nav-center">
+        <button class="nav-btn active" data-nav="overview">Overview</button>
+        <button class="nav-btn" data-nav="assistant">Assistant</button>
+        <button class="nav-btn" data-nav="leads">Leads</button>
+        <button class="nav-btn" data-nav="automations">Automations</button>
+        <button class="nav-btn" data-nav="admin">Admin</button>
+      </div>
+      <div class="nav-right">
+        <span class="user-name">User</span>
+        <button id="refresh-dashboard" class="btn-icon" title="Refresh">
+          🔄
+        </button>
+        <button id="logout-btn" class="btn-icon" title="Logout">🚪</button>
+      </div>
+    </nav>
+
+    <!-- Main Content Area with Lazy Loading -->
+    <div class="dashboard-container">
+      <!-- Overview View -->
+      <div class="view active" id="overview-view" data-view="overview">
+        <div class="view-header">
+          <h1 id="view-title">Overview</h1>
+          <p id="view-subtitle">Live system pulse and business activity.</p>
+        </div>
+
+        <div class="kpi-grid">
+          <div class="kpi-card">
+            <h3>Conversations</h3>
+            <div class="kpi-value" id="kpi-conversations">-</div>
+          </div>
+          <div class="kpi-card">
+            <h3>Messages</h3>
+            <div class="kpi-value" id="kpi-messages">-</div>
+          </div>
+          <div class="kpi-card">
+            <h3>Leads</h3>
+            <div class="kpi-value" id="kpi-leads">-</div>
+          </div>
+          <div class="kpi-card">
+            <h3>Hot Leads</h3>
+            <div class="kpi-value" id="kpi-hot">-</div>
+          </div>
+          <div class="kpi-card">
+            <h3>Conversion Rate</h3>
+            <div class="kpi-value" id="kpi-conversion">-</div>
+          </div>
+          <div class="kpi-card">
+            <h3>Active Workflows</h3>
+            <div class="kpi-value" id="kpi-workflows">-</div>
+          </div>
+        </div>
+
+        <div class="audit-section">
+          <h2>Recent Activity</h2>
+          <ul id="audit-list" class="list-container"></ul>
+        </div>
+      </div>
+
+      <!-- Assistant View (Lazy Loaded) -->
+      <div class="view" id="assistant-view" data-view="assistant">
+        <div class="view-header">
+          <h1>Assistant</h1>
+          <p>Grounded answers with document intelligence.</p>
+        </div>
+
+        <div class="chat-container">
+          <div class="chat-controls">
+            <button id="new-chat" class="btn-secondary">New Chat</button>
+            <button id="delete-chat" class="btn-secondary">Delete</button>
+            <button id="delete-all-chats" class="btn-secondary">Delete All</button>
+          </div>
+
+          <div class="chat-layout">
+            <div class="chat-sidebar">
+              <h3>Conversations</h3>
+              <ul id="chat-history" class="list-container"></ul>
+            </div>
+
+            <div class="chat-main">
+              <div id="chat-log" class="chat-log"></div>
+
+              <div class="chat-input-area">
+                <textarea
+                  id="chat-input"
+                  placeholder="Ask me anything..."
+                  rows="3"
+                ></textarea>
+                <button id="send-chat" class="btn-primary">Send</button>
+              </div>
+
+              <div class="doc-upload-area">
+                <h3>Upload Documents</h3>
+                <label for="doc-file">Choose files to upload</label>
+                <input type="file" id="doc-file" multiple accept=".pdf,.txt,.docx" />
+                <button id="upload-doc" class="btn-secondary">Upload</button>
+                <div id="doc-status" class="status-msg"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Leads View (Lazy Loaded) -->
+      <div class="view" id="leads-view" data-view="leads">
+        <div class="view-header">
+          <h1>Leads</h1>
+          <p>Capture, score, and follow up with prospects.</p>
+        </div>
+
+        <div class="leads-container">
+          <div class="leads-form">
+            <h3>Add Lead</h3>
+            <label for="lead-name">Name</label>
+            <input type="text" id="lead-name" placeholder="Name" />
+            <label for="lead-email">Email</label>
+            <input type="email" id="lead-email" placeholder="Email" />
+            <label for="lead-phone">Phone</label>
+            <input type="tel" id="lead-phone" placeholder="Phone" />
+            <label for="lead-company">Company</label>
+            <input type="text" id="lead-company" placeholder="Company" />
+            <label for="lead-interest">Interest</label>
+            <textarea id="lead-interest" placeholder="Interest"></textarea>
+            <button id="create-lead" class="btn-primary">Add Lead</button>
+            <div id="lead-status" class="status-msg"></div>
+          </div>
+
+          <div class="leads-list">
+            <h3>Leads</h3>
+            <ul id="lead-list" class="list-container"></ul>
+          </div>
+        </div>
+      </div>
+
+      <!-- Automations View (Lazy Loaded) -->
+      <div class="view" id="automations-view" data-view="automations">
+        <div class="view-header">
+          <h1>Automations</h1>
+          <p>Trigger repeatable workflows in one click.</p>
+        </div>
+
+        <div class="automations-container">
+          <div class="workflow-form">
+            <h3>Create Workflow</h3>
+            <input
+              type="text"
+              id="new-workflow-name"
+              placeholder="Workflow Name"
+            />
+            <label for="new-workflow-trigger">Trigger Type</label>
+            <select id="new-workflow-trigger" aria-label="Select workflow trigger type">
+              <option value="">Select Trigger</option>
+              <option value="manual">Manual</option>
+              <option value="scheduled">Scheduled</option>
+              <option value="webhook">Webhook</option>
+            </select>
+            <textarea
+              id="new-workflow-nodes"
+              placeholder="Workflow Steps (JSON)"
+            ></textarea>
+            <button id="create-workflow" class="btn-primary">
+              Create Workflow
+            </button>
+            <div id="create-workflow-status" class="status-msg"></div>
+          </div>
+
+          <div class="workflow-runner">
+            <h3>Run Workflow</h3>
+            <label for="workflow-type">Workflow</label>
+            <select id="workflow-type" aria-label="Select workflow to run">
+              <option value="">Select Workflow</option>
+            </select>
+            <textarea id="workflow-payload" placeholder="Input Data (JSON)"></textarea>
+            <button id="run-workflow" class="btn-primary">Run</button>
+            <div id="workflow-status" class="status-msg"></div>
+          </div>
+
+          <div class="workflow-list">
+            <h3>Workflows</h3>
+            <ul id="workflow-list" class="list-container"></ul>
+          </div>
+        </div>
+      </div>
+
+      <!-- Admin View (Lazy Loaded) -->
+      <div class="view" id="admin-view" data-view="admin">
+        <div class="view-header">
+          <h1>Admin</h1>
+          <p>Client settings, workflows, and operational visibility.</p>
+        </div>
+
+        <div class="admin-container">
+          <section class="admin-section">
+            <h3>Users</h3>
+            <ul id="admin-users" class="list-container"></ul>
+          </section>
+
+          <section class="admin-section">
+            <h3>Workspaces</h3>
+            <ul id="admin-workspaces" class="list-container"></ul>
+          </section>
+
+          <section class="admin-section">
+            <h3>Automation Logs</h3>
+            <ul id="admin-automation-logs" class="list-container"></ul>
+          </section>
+
+          <section class="admin-section">
+            <h3>Audit Logs</h3>
+            <ul id="admin-audit-logs" class="list-container"></ul>
+          </section>
+
+          <section class="admin-section">
+            <h3>Integrations</h3>
+            <ul id="admin-integrations" class="list-container"></ul>
+          </section>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Performance Optimizer MUST load before app.js -->
+  <script src="performance-optimizer.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

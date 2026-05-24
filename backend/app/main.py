@@ -7,7 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 
-from app.api.routes import analytics, auth, chat, docs, leads, workflows
+from app.api.routes import analytics, auth, chat, docs, leads, workflows, integrations, admin
 from app.core.config import settings
 from app.core.logging import setup_logging
 from app.db.base import Base
@@ -50,6 +50,10 @@ async def _run_sql_safe(query: str) -> None:
 
 
 async def _run_schema_repair_migrations() -> None:
+    if await _table_exists("users"):
+        if not await _column_exists("users", "workspace_id"):
+            await _run_sql_safe("ALTER TABLE users ADD COLUMN workspace_id INTEGER;")
+
     await _run_sql_safe("ALTER TABLE messages ADD COLUMN IF NOT EXISTS tokens INTEGER DEFAULT 0 NOT NULL;")
     await _run_sql_safe("ALTER TABLE conversations ALTER COLUMN title DROP NOT NULL;")
 
@@ -98,6 +102,9 @@ def _check_rag_runtime_readiness() -> None:
         logger.error("RAG runtime check failed: %s", exc)
 
 
+import asyncio
+from app.services.automation import automation_worker
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup: create all tables
@@ -107,14 +114,22 @@ async def lifespan(app: FastAPI):
     await _run_schema_repair_migrations()
     _check_rag_runtime_readiness()
 
+    # Start background automation worker
+    worker_task = asyncio.create_task(automation_worker())
+
     yield
     # Shutdown: dispose the engine pool
+    worker_task.cancel()
     await engine.dispose()
 
 
 app = FastAPI(title=settings.app_name, lifespan=lifespan)
 
-origins = [origin.strip().rstrip("/") for origin in settings.allow_origins.split(",") if origin.strip()]
+origins = [
+    "http://localhost:8080",
+    "https://smart-ai-business-assistant-platform.onrender.com",
+    "https://smart-ai-business-assistant-platfor.vercel.app",
+]
 
 app.add_middleware(
     CORSMiddleware,
@@ -150,7 +165,9 @@ app.include_router(chat.router, prefix="/api/chat", tags=["chat"])
 app.include_router(leads.router, prefix="/api/leads", tags=["leads"])
 app.include_router(docs.router, prefix="/api/docs", tags=["docs"])
 app.include_router(workflows.router, prefix="/api/workflows", tags=["workflows"])
+app.include_router(integrations.router, prefix="/api/integrations", tags=["integrations"])
 app.include_router(analytics.router, prefix="/api/analytics", tags=["analytics"])
+app.include_router(admin.router, prefix="/api/admin", tags=["admin"])
 
 frontend_path = (Path(__file__).parent / settings.frontend_dir).resolve()
 if frontend_path.exists():
