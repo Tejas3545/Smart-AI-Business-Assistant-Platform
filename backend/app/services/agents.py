@@ -1,9 +1,7 @@
 from app.services.llm_hybrid import generate_answer
 from app.services.llm_stub import compose_answer
 import logging
-from typing import Dict, List, Optional
-import httpx
-from tenacity import retry, stop_after_attempt, wait_exponential
+from typing import List
 
 logger = logging.getLogger(__name__)
 
